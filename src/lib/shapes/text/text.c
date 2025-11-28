@@ -53,7 +53,8 @@ void *text_create(int id, double x, double y, const char *border_color,
     return NULL;
   }
 
-  return t;
+  // Wrap the text in a Shape wrapper
+  return shape_create_wrapper(TEXT, t);
 }
 
 void text_destroy(void *text) {

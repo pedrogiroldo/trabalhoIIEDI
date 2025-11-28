@@ -7,7 +7,9 @@
 #ifndef RECTANGLE_H
 #define RECTANGLE_H
 
-typedef void* Rectangle;
+#include "../shapes.h"
+
+typedef void *Rectangle;
 
 /**
  * Creates a new rectangle instance
@@ -18,9 +20,9 @@ typedef void* Rectangle;
  * @param height Rectangle height
  * @param border_color Border color string
  * @param fill_color Fill color string
- * @return Pointer to new rectangle or NULL on error
+ * @return Pointer to new Shape wrapper or NULL on error
  */
-Rectangle rectangle_create(int id, double x, double y, double width, double height,
+Shape rectangle_create(int id, double x, double y, double width, double height,
                        const char *border_color, const char *fill_color);
 
 /**

@@ -7,7 +7,9 @@
 #ifndef LINE_H
 #define LINE_H
 
-typedef void* Line;
+#include "../shapes.h"
+
+typedef void *Line;
 
 /**
  * Creates a new line instance
@@ -17,9 +19,9 @@ typedef void* Line;
  * @param x2 X coordinate of end point
  * @param y2 Y coordinate of end point
  * @param color Line color string
- * @return Pointer to new line or NULL on error
+ * @return Pointer to new Shape wrapper or NULL on error
  */
-Line line_create(int id, double x1, double y1, double x2, double y2,
+Shape line_create(int id, double x1, double y1, double x2, double y2,
                   const char *color);
 
 /**

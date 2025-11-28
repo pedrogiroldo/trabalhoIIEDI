@@ -46,7 +46,8 @@ void *rectangle_create(int id, double x, double y, double width, double height,
     return NULL;
   }
 
-  return rectangle;
+  // Wrap the rectangle in a Shape wrapper
+  return shape_create_wrapper(RECTANGLE, rectangle);
 }
 
 void rectangle_destroy(void *rectangle) {

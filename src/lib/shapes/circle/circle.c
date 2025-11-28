@@ -43,7 +43,8 @@ void *circle_create(int id, double x, double y, double radius,
     return NULL;
   }
 
-  return circle;
+  // Wrap the circle in a Shape wrapper
+  return shape_create_wrapper(CIRCLE, circle);
 }
 
 void circle_destroy(void *circle) {

@@ -32,7 +32,8 @@ void *text_style_create(const char *font_family, char font_weight,
     return NULL;
   }
 
-  return text_style;
+  // Wrap the text style in a Shape wrapper
+  return shape_create_wrapper(TEXT_STYLE, text_style);
 }
 
 void text_style_destroy(void *text_style) {

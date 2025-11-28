@@ -7,7 +7,9 @@
 #ifndef TEXT_H
 #define TEXT_H
 
-typedef void* Text;
+#include "../shapes.h"
+
+typedef void *Text;
 
 /**
  * Creates a new text instance
@@ -18,9 +20,9 @@ typedef void* Text;
  * @param fill_color Fill color string
  * @param anchor Text anchor character
  * @param text Text content string
- * @return Pointer to new text or NULL on error
+ * @return Pointer to new Shape wrapper or NULL on error
  */
-Text text_create(int id, double x, double y, const char *border_color,
+Shape text_create(int id, double x, double y, const char *border_color,
                   const char *fill_color, char anchor, const char *text);
 
 /**

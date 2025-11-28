@@ -17,11 +17,6 @@ typedef struct {
   Queue svgQueue;
 } Ground_t;
 
-typedef struct {
-  ShapeType type;
-  void *data;
-} Shape_t;
-
 // private functions defined as static and implemented on the end of the file
 static void execute_circle_command(Ground_t *ground);
 static void execute_rectangle_command(Ground_t *ground);
@@ -83,27 +78,8 @@ void destroy_geo_waste(Ground ground) {
   queue_destroy(ground_t->shapesQueue);
   queue_destroy(ground_t->svgQueue);
   while (!stack_is_empty(ground_t->shapesStackToFree)) {
-    Shape_t *shape = stack_pop(ground_t->shapesStackToFree);
-    switch (shape->type) {
-    case CIRCLE:
-      circle_destroy(shape->data);
-      break;
-    case RECTANGLE:
-      rectangle_destroy(shape->data);
-      break;
-    case LINE:
-      line_destroy(shape->data);
-      break;
-    case TEXT:
-      text_destroy(shape->data);
-      break;
-    case TEXT_STYLE:
-      text_style_destroy(shape->data);
-      break;
-    default:
-      break;
-    }
-    free(shape);
+    Shape shape = stack_pop(ground_t->shapesStackToFree);
+    shape_destroy(shape);
   }
   stack_destroy(ground_t->shapesStackToFree);
   free(ground);
@@ -132,16 +108,9 @@ static void execute_circle_command(Ground_t *ground) {
   char *borderColor = strtok(NULL, " ");
   char *fillColor = strtok(NULL, " ");
 
-  Circle circle = circle_create(atoi(identifier), atof(posX), atof(posY),
-                                atof(radius), borderColor, fillColor);
+  Shape shape = circle_create(atoi(identifier), atof(posX), atof(posY),
+                              atof(radius), borderColor, fillColor);
 
-  Shape_t *shape = malloc(sizeof(Shape_t));
-  if (shape == NULL) {
-    printf("Error: Failed to allocate memory for Shape\n");
-    exit(1);
-  }
-  shape->type = CIRCLE;
-  shape->data = circle;
   queue_enqueue(ground->shapesQueue, shape);
   stack_push(ground->shapesStackToFree, shape);
   queue_enqueue(ground->svgQueue, shape);
@@ -156,17 +125,10 @@ static void execute_rectangle_command(Ground_t *ground) {
   char *borderColor = strtok(NULL, " ");
   char *fillColor = strtok(NULL, " ");
 
-  Rectangle rectangle =
+  Shape shape =
       rectangle_create(atoi(identifier), atof(posX), atof(posY), atof(width),
                        atof(height), borderColor, fillColor);
 
-  Shape_t *shape = malloc(sizeof(Shape_t));
-  if (shape == NULL) {
-    printf("Error: Failed to allocate memory for Shape\n");
-    exit(1);
-  }
-  shape->type = RECTANGLE;
-  shape->data = rectangle;
   queue_enqueue(ground->shapesQueue, shape);
   stack_push(ground->shapesStackToFree, shape);
   queue_enqueue(ground->svgQueue, shape);
@@ -180,16 +142,9 @@ static void execute_line_command(Ground_t *ground) {
   char *y2 = strtok(NULL, " ");
   char *color = strtok(NULL, " ");
 
-  Line line = line_create(atoi(identifier), atof(x1), atof(y1), atof(x2),
-                          atof(y2), color);
+  Shape shape = line_create(atoi(identifier), atof(x1), atof(y1), atof(x2),
+                            atof(y2), color);
 
-  Shape_t *shape = malloc(sizeof(Shape_t));
-  if (shape == NULL) {
-    printf("Error: Failed to allocate memory for Shape\n");
-    exit(1);
-  }
-  shape->type = LINE;
-  shape->data = line;
   queue_enqueue(ground->shapesQueue, shape);
   stack_push(ground->shapesStackToFree, shape);
   queue_enqueue(ground->svgQueue, shape);
@@ -204,16 +159,9 @@ static void execute_text_command(Ground_t *ground) {
   char *anchor = strtok(NULL, " ");
   char *text = strtok(NULL, "");
 
-  Text text_obj = text_create(atoi(identifier), atof(posX), atof(posY),
-                              borderColor, fillColor, *anchor, text);
+  Shape shape = text_create(atoi(identifier), atof(posX), atof(posY),
+                            borderColor, fillColor, *anchor, text);
 
-  Shape_t *shape = malloc(sizeof(Shape_t));
-  if (shape == NULL) {
-    printf("Error: Failed to allocate memory for Shape\n");
-    exit(1);
-  }
-  shape->type = TEXT;
-  shape->data = text_obj;
   queue_enqueue(ground->shapesQueue, shape);
   stack_push(ground->shapesStackToFree, shape);
   queue_enqueue(ground->svgQueue, shape);
@@ -224,16 +172,8 @@ static void execute_text_style_command(Ground_t *ground) {
   char *fontWeight = strtok(NULL, " ");
   char *fontSize = strtok(NULL, " ");
 
-  TextStyle text_style_obj =
-      text_style_create(fontFamily, *fontWeight, atoi(fontSize));
+  Shape shape = text_style_create(fontFamily, *fontWeight, atoi(fontSize));
 
-  Shape_t *shape = malloc(sizeof(Shape_t));
-  if (shape == NULL) {
-    printf("Error: Failed to allocate memory for Shape\n");
-    exit(1);
-  }
-  shape->type = TEXT_STYLE;
-  shape->data = text_style_obj;
   queue_enqueue(ground->shapesQueue, shape);
   stack_push(ground->shapesStackToFree, shape);
   queue_enqueue(ground->svgQueue, shape);
@@ -289,18 +229,19 @@ static void create_svg_queue(Ground_t *ground, const char *output_path,
       file,
       "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 1000 1000\">\n");
   while (!queue_is_empty(ground->svgQueue)) {
-    Shape_t *shape = queue_dequeue(ground->svgQueue);
+    Shape shape = queue_dequeue(ground->svgQueue);
     if (shape != NULL) {
-      if (shape->type == CIRCLE) {
-        Circle circle = (Circle)shape->data;
+      ShapeType type = shape_get_type(shape);
+      if (type == CIRCLE) {
+        Circle circle = (Circle)shape_get_shape(shape);
         fprintf(
             file,
             "<circle cx='%.2f' cy='%.2f' r='%.2f' fill='%s' stroke='%s'/>\n",
             circle_get_x(circle), circle_get_y(circle),
             circle_get_radius(circle), circle_get_fill_color(circle),
             circle_get_border_color(circle));
-      } else if (shape->type == RECTANGLE) {
-        Rectangle rectangle = (Rectangle)shape->data;
+      } else if (type == RECTANGLE) {
+        Rectangle rectangle = (Rectangle)shape_get_shape(shape);
         fprintf(file,
                 "<rect x='%.2f' y='%.2f' width='%.2f' height='%.2f' fill='%s' "
                 "stroke='%s'/>\n",
@@ -308,14 +249,14 @@ static void create_svg_queue(Ground_t *ground, const char *output_path,
                 rectangle_get_width(rectangle), rectangle_get_height(rectangle),
                 rectangle_get_fill_color(rectangle),
                 rectangle_get_border_color(rectangle));
-      } else if (shape->type == LINE) {
-        Line line = (Line)shape->data;
+      } else if (type == LINE) {
+        Line line = (Line)shape_get_shape(shape);
         fprintf(file,
                 "<line x1='%.2f' y1='%.2f' x2='%.2f' y2='%.2f' stroke='%s'/>\n",
                 line_get_x1(line), line_get_y1(line), line_get_x2(line),
                 line_get_y2(line), line_get_color(line));
-      } else if (shape->type == TEXT) {
-        Text text = (Text)shape->data;
+      } else if (type == TEXT) {
+        Text text = (Text)shape_get_shape(shape);
         char anchor = text_get_anchor(text);
         const char *text_anchor = "start"; // default
 

@@ -38,7 +38,8 @@ void *line_create(int id, double x1, double y1, double x2, double y2,
     return NULL;
   }
 
-  return line;
+  // Wrap the line in a Shape wrapper
+  return shape_create_wrapper(LINE, line);
 }
 
 void line_destroy(void *line) {

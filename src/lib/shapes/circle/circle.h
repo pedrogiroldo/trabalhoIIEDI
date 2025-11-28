@@ -7,7 +7,9 @@
 #ifndef CIRCLE_H
 #define CIRCLE_H
 
-typedef void* Circle;
+#include "../shapes.h"
+
+typedef void *Circle;
 
 /**
  * Creates a new circle instance
@@ -17,9 +19,9 @@ typedef void* Circle;
  * @param radius Circle radius
  * @param border_color Border color string
  * @param fill_color Fill color string
- * @return Pointer to new circle or NULL on error
+ * @return Pointer to new Shape wrapper or NULL on error
  */
-Circle circle_create(int id, double x, double y, double radius,
+Shape circle_create(int id, double x, double y, double radius,
                     const char *border_color, const char *fill_color);
 
 /**

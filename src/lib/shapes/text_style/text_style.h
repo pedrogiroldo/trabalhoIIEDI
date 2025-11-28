@@ -7,6 +7,8 @@
 #ifndef TEXT_STYLE_H
 #define TEXT_STYLE_H
 
+#include "../shapes.h"
+
 typedef void *TextStyle;
 
 /**
@@ -14,10 +16,10 @@ typedef void *TextStyle;
  * @param font_family Font family string
  * @param font_weight Font weight character
  * @param font_size Font size
- * @return Pointer to new text style or NULL on error
+ * @return Pointer to new Shape wrapper or NULL on error
  */
-TextStyle text_style_create(const char *font_family, char font_weight,
-                            int font_size);
+Shape text_style_create(const char *font_family, char font_weight,
+                        int font_size);
 
 /**
  * Destroys a text style instance and frees all memory
