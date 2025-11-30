@@ -1,4 +1,5 @@
 *.o
 ted
+*_test
 *.svg
 *.txt
