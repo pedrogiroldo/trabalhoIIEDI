@@ -16,7 +16,13 @@ int main(int argc, char *argv[]) {
   const char *output_path = get_option_value(argc, argv, "o");
   const char *qry_input_path = get_option_value(argc, argv, "q");
   const char *ordenation_type = get_option_value(argc, argv, "to");
-  const char *subvector_something = get_option_value(argc, argv, "i");
+  char *min_insertionsort_size = get_option_value(argc, argv, "i");
+
+  // Apply default value for -i if not provided
+  if (min_insertionsort_size == NULL) {
+    min_insertionsort_size = (char *)malloc(3);
+    sprintf(min_insertionsort_size, "10");
+  }
 
   // Apply prefix_path if it exists (only to -f and -q)
   char *full_geo_path = NULL;
@@ -63,6 +69,10 @@ int main(int argc, char *argv[]) {
   }
   if (full_qry_path != NULL) {
     free(full_qry_path);
+  }
+  if (min_insertionsort_size != NULL &&
+      get_option_value(argc, argv, "i") == NULL) {
+    free(min_insertionsort_size);
   }
 
   return 0;
