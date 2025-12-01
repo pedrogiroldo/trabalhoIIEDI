@@ -12,87 +12,87 @@
 #include <string.h>
 
 typedef struct {
-  Queue shapesQueue;
-  Stack shapesStackToFree;
-  Queue svgQueue;
-} Ground_t;
+  Queue shapes_queue;
+  Stack cleanup_stack;
+  Queue svg_queue;
+} CityImpl;
 
 // private functions defined as static and implemented on the end of the file
-static void execute_circle_command(Ground_t *ground);
-static void execute_rectangle_command(Ground_t *ground);
-static void execute_line_command(Ground_t *ground);
-static void execute_text_command(Ground_t *ground);
-static void execute_text_style_command(Ground_t *ground);
-static void create_svg_queue(Ground_t *ground, const char *output_path,
-                             FileData fileData, const char *command_suffix);
+static void execute_circle_command(CityImpl *city);
+static void execute_rectangle_command(CityImpl *city);
+static void execute_line_command(CityImpl *city);
+static void execute_text_command(CityImpl *city);
+static void execute_text_style_command(CityImpl *city);
+static void create_svg_queue(CityImpl *city, const char *output_path,
+                             FileData file_data, const char *command_suffix);
 
-Ground execute_geo_commands(FileData fileData, const char *output_path,
-                            const char *command_suffix) {
-  Ground_t *ground = malloc(sizeof(Ground_t));
-  if (ground == NULL) {
-    printf("Error: Failed to allocate memory for Ground\n");
+City city_create_from_file(FileData file_data, const char *output_path,
+                           const char *command_suffix) {
+  CityImpl *city = malloc(sizeof(CityImpl));
+  if (city == NULL) {
+    printf("Error: Failed to allocate memory for City\n");
     exit(1);
   }
 
-  ground->shapesQueue = queue_create();
-  ground->shapesStackToFree = stack_create();
-  ground->svgQueue = queue_create();
-  while (!queue_is_empty(get_file_lines_queue(fileData))) {
-    char *line = (char *)queue_dequeue(get_file_lines_queue(fileData));
+  city->shapes_queue = queue_create();
+  city->cleanup_stack = stack_create();
+  city->svg_queue = queue_create();
+  while (!queue_is_empty(get_file_lines_queue(file_data))) {
+    char *line = (char *)queue_dequeue(get_file_lines_queue(file_data));
     char *command = strtok(line, " ");
 
     // Circle command: c i x y r corb corp
     if (strcmp(command, "c") == 0) {
-      execute_circle_command(ground);
+      execute_circle_command(city);
     }
 
     // Rectangle command: r i x y w h corb corp
     else if (strcmp(command, "r") == 0) {
-      execute_rectangle_command(ground);
+      execute_rectangle_command(city);
 
     }
     // Line command: l i x1 y1 x2 y2 cor
     else if (strcmp(command, "l") == 0) {
-      execute_line_command(ground);
+      execute_line_command(city);
 
     }
 
     // Text command: t i x y corb corp a txto
     else if (strcmp(command, "t") == 0) {
-      execute_text_command(ground);
+      execute_text_command(city);
     }
 
     // Text style command: ts fFamily fWeight fSize
     else if (strcmp(command, "ts") == 0) {
-      execute_text_style_command(ground);
+      execute_text_style_command(city);
     } else {
       printf("Unknown command: %s\n", command);
     }
   }
-  create_svg_queue(ground, output_path, fileData, command_suffix);
-  return ground;
+  create_svg_queue(city, output_path, file_data, command_suffix);
+  return city;
 }
 
-void destroy_geo_waste(Ground ground) {
-  Ground_t *ground_t = (Ground_t *)ground;
-  queue_destroy(ground_t->shapesQueue);
-  queue_destroy(ground_t->svgQueue);
-  while (!stack_is_empty(ground_t->shapesStackToFree)) {
-    Shape shape = stack_pop(ground_t->shapesStackToFree);
+void city_destroy(City city) {
+  CityImpl *impl = (CityImpl *)city;
+  queue_destroy(impl->shapes_queue);
+  queue_destroy(impl->svg_queue);
+  while (!stack_is_empty(impl->cleanup_stack)) {
+    Shape shape = stack_pop(impl->cleanup_stack);
     shape_destroy(shape);
   }
-  stack_destroy(ground_t->shapesStackToFree);
-  free(ground);
+  stack_destroy(impl->cleanup_stack);
+  free(city);
 }
 
-Queue get_ground_queue(Ground ground) {
-  Ground_t *ground_t = (Ground_t *)ground;
-  return ground_t->shapesQueue;
+Queue city_get_shapes_queue(City city) {
+  CityImpl *impl = (CityImpl *)city;
+  return impl->shapes_queue;
 }
 
-Stack get_ground_shapes_stack_to_free(Ground ground) {
-  Ground_t *ground_t = (Ground_t *)ground;
-  return ground_t->shapesStackToFree;
+Stack city_get_cleanup_stack(City city) {
+  CityImpl *impl = (CityImpl *)city;
+  return impl->cleanup_stack;
 }
 
 /**
@@ -100,41 +100,41 @@ Stack get_ground_shapes_stack_to_free(Ground ground) {
 * Private functions
 **************************
 */
-static void execute_circle_command(Ground_t *ground) {
+static void execute_circle_command(CityImpl *city) {
   char *identifier = strtok(NULL, " ");
-  char *posX = strtok(NULL, " ");
-  char *posY = strtok(NULL, " ");
+  char *pos_x = strtok(NULL, " ");
+  char *pos_y = strtok(NULL, " ");
   char *radius = strtok(NULL, " ");
-  char *borderColor = strtok(NULL, " ");
-  char *fillColor = strtok(NULL, " ");
+  char *border_color = strtok(NULL, " ");
+  char *fill_color = strtok(NULL, " ");
 
-  Shape shape = circle_create(atoi(identifier), atof(posX), atof(posY),
-                              atof(radius), borderColor, fillColor);
+  Shape shape = circle_create(atoi(identifier), atof(pos_x), atof(pos_y),
+                              atof(radius), border_color, fill_color);
 
-  queue_enqueue(ground->shapesQueue, shape);
-  stack_push(ground->shapesStackToFree, shape);
-  queue_enqueue(ground->svgQueue, shape);
+  queue_enqueue(city->shapes_queue, shape);
+  stack_push(city->cleanup_stack, shape);
+  queue_enqueue(city->svg_queue, shape);
 }
 
-static void execute_rectangle_command(Ground_t *ground) {
+static void execute_rectangle_command(CityImpl *city) {
   char *identifier = strtok(NULL, " ");
-  char *posX = strtok(NULL, " ");
-  char *posY = strtok(NULL, " ");
+  char *pos_x = strtok(NULL, " ");
+  char *pos_y = strtok(NULL, " ");
   char *width = strtok(NULL, " ");
   char *height = strtok(NULL, " ");
-  char *borderColor = strtok(NULL, " ");
-  char *fillColor = strtok(NULL, " ");
+  char *border_color = strtok(NULL, " ");
+  char *fill_color = strtok(NULL, " ");
 
   Shape shape =
-      rectangle_create(atoi(identifier), atof(posX), atof(posY), atof(width),
-                       atof(height), borderColor, fillColor);
+      rectangle_create(atoi(identifier), atof(pos_x), atof(pos_y), atof(width),
+                       atof(height), border_color, fill_color);
 
-  queue_enqueue(ground->shapesQueue, shape);
-  stack_push(ground->shapesStackToFree, shape);
-  queue_enqueue(ground->svgQueue, shape);
+  queue_enqueue(city->shapes_queue, shape);
+  stack_push(city->cleanup_stack, shape);
+  queue_enqueue(city->svg_queue, shape);
 }
 
-static void execute_line_command(Ground_t *ground) {
+static void execute_line_command(CityImpl *city) {
   char *identifier = strtok(NULL, " ");
   char *x1 = strtok(NULL, " ");
   char *y1 = strtok(NULL, " ");
@@ -145,43 +145,43 @@ static void execute_line_command(Ground_t *ground) {
   Shape shape = line_create(atoi(identifier), atof(x1), atof(y1), atof(x2),
                             atof(y2), color);
 
-  queue_enqueue(ground->shapesQueue, shape);
-  stack_push(ground->shapesStackToFree, shape);
-  queue_enqueue(ground->svgQueue, shape);
+  queue_enqueue(city->shapes_queue, shape);
+  stack_push(city->cleanup_stack, shape);
+  queue_enqueue(city->svg_queue, shape);
 }
 
-static void execute_text_command(Ground_t *ground) {
+static void execute_text_command(CityImpl *city) {
   char *identifier = strtok(NULL, " ");
-  char *posX = strtok(NULL, " ");
-  char *posY = strtok(NULL, " ");
-  char *borderColor = strtok(NULL, " ");
-  char *fillColor = strtok(NULL, " ");
+  char *pos_x = strtok(NULL, " ");
+  char *pos_y = strtok(NULL, " ");
+  char *border_color = strtok(NULL, " ");
+  char *fill_color = strtok(NULL, " ");
   char *anchor = strtok(NULL, " ");
   char *text = strtok(NULL, "");
 
-  Shape shape = text_create(atoi(identifier), atof(posX), atof(posY),
-                            borderColor, fillColor, *anchor, text);
+  Shape shape = text_create(atoi(identifier), atof(pos_x), atof(pos_y),
+                            border_color, fill_color, *anchor, text);
 
-  queue_enqueue(ground->shapesQueue, shape);
-  stack_push(ground->shapesStackToFree, shape);
-  queue_enqueue(ground->svgQueue, shape);
+  queue_enqueue(city->shapes_queue, shape);
+  stack_push(city->cleanup_stack, shape);
+  queue_enqueue(city->svg_queue, shape);
 }
 
-static void execute_text_style_command(Ground_t *ground) {
-  char *fontFamily = strtok(NULL, " ");
-  char *fontWeight = strtok(NULL, " ");
-  char *fontSize = strtok(NULL, " ");
+static void execute_text_style_command(CityImpl *city) {
+  char *font_family = strtok(NULL, " ");
+  char *font_weight = strtok(NULL, " ");
+  char *font_size = strtok(NULL, " ");
 
-  Shape shape = text_style_create(fontFamily, *fontWeight, atoi(fontSize));
+  Shape shape = text_style_create(font_family, *font_weight, atoi(font_size));
 
-  queue_enqueue(ground->shapesQueue, shape);
-  stack_push(ground->shapesStackToFree, shape);
-  queue_enqueue(ground->svgQueue, shape);
+  queue_enqueue(city->shapes_queue, shape);
+  stack_push(city->cleanup_stack, shape);
+  queue_enqueue(city->svg_queue, shape);
 }
 
-static void create_svg_queue(Ground_t *ground, const char *output_path,
-                             FileData fileData, const char *command_suffix) {
-  const char *original_file_name = get_file_name(fileData);
+static void create_svg_queue(CityImpl *city, const char *output_path,
+                             FileData file_data, const char *command_suffix) {
+  const char *original_file_name = get_file_name(file_data);
   size_t name_len = strlen(original_file_name);
   char *file_name = malloc(name_len + 1);
   if (file_name == NULL) {
@@ -228,8 +228,8 @@ static void create_svg_queue(Ground_t *ground, const char *output_path,
   fprintf(
       file,
       "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 1000 1000\">\n");
-  while (!queue_is_empty(ground->svgQueue)) {
-    Shape shape = queue_dequeue(ground->svgQueue);
+  while (!queue_is_empty(city->svg_queue)) {
+    Shape shape = queue_dequeue(city->svg_queue);
     if (shape != NULL) {
       ShapeType type = shape_get_type(shape);
       if (type == CIRCLE) {

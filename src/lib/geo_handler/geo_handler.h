@@ -3,7 +3,7 @@
  * @brief Geographic file command handler
  *
  * This module executes the commands from .geo files and manages
- * the ground state with all geometric shapes.
+ * the city with all geometric shapes.
  */
 
 #ifndef GEO_HANDLER_H
@@ -12,42 +12,42 @@
 #include "../file_reader/file_reader.h"
 
 /**
- * @brief Opaque pointer type for ground instances
+ * @brief Opaque pointer type for city instances
  */
-typedef void *Ground;
+typedef void *City;
 
 /**
- * @brief Executes commands from a .geo file and creates the ground
- * @param fileData File data containing .geo file lines
+ * @brief Creates a city from a .geo file
+ * @param file_data File data containing .geo file lines
  * @param output_path Path to the output file
  * @param command_suffix Command suffix to add to the output file name
- * @return Ground instance with all shapes or NULL on error
+ * @return City instance with all shapes or NULL on error
  */
-Ground execute_geo_commands(FileData fileData, const char *output_path,
-                            const char *command_suffix);
+City city_create_from_file(FileData file_data, const char *output_path,
+                           const char *command_suffix);
 
 /**
- * @brief Gets the ground queue containing all shapes
- * @param ground Ground instance
+ * @brief Gets the shapes queue from the city
+ * @param city City instance
  * @return Queue containing all shapes
  */
-Queue get_ground_queue(Ground ground);
+Queue city_get_shapes_queue(City city);
 
 /**
- * @brief Gets the ground shapes stack used for memory management
- * @param ground Ground instance
+ * @brief Gets the cleanup stack from the city
+ * @param city City instance
  * @return Stack containing shapes to free
  */
-Stack get_ground_shapes_stack_to_free(Ground ground);
+Stack city_get_cleanup_stack(City city);
 
 /**
- * @brief Destroys the ground and frees all associated memory
+ * @brief Destroys the city and frees all associated memory
  *
- * This function should be called after all operations that use the ground
+ * This function should be called after all operations that use the city
  * are completed to prevent memory leaks.
  *
- * @param ground Ground instance to destroy
+ * @param city City instance to destroy
  */
-void destroy_geo_waste(Ground ground);
+void city_destroy(City city);
 
 #endif // GEO_HANDLER_H
