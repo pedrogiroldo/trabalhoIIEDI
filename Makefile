@@ -14,6 +14,17 @@ TEST_FILES := $(shell find src -name "*.spec.c" 2>/dev/null)
 TEST_BINS := $(TEST_FILES:.spec.c=_test)
 TEST_FRAMEWORK_SRC = src/lib/test_framework/test_framework.c
 
+# Common dependencies used by many modules
+COMMON_DEPS = src/lib/commons/queue/queue.c \
+              src/lib/commons/stack/stack.c \
+              src/lib/commons/utils/utils.c \
+              src/lib/shapes/shapes.c \
+              src/lib/shapes/circle/circle.c \
+              src/lib/shapes/rectangle/rectangle.c \
+              src/lib/shapes/line/line.c \
+              src/lib/shapes/text/text.c \
+              src/lib/shapes/text_style/text_style.c
+
 # Compilador e Flags
 CC = gcc
 CFLAGS = -ggdb -O0 -std=c99 -fstack-protector-all -Werror=implicit-function-declaration
@@ -39,7 +50,7 @@ test-build: $(TEST_BINS)
 
 # Pattern rule to build test executables
 # For each .spec.c file, compile it with the corresponding module and test framework
-%_test: %.spec.c %.c $(TEST_FRAMEWORK_SRC)
+%_test: %.spec.c %.c $(TEST_FRAMEWORK_SRC) $(COMMON_DEPS)
 	@echo "Building test: $@"
 	$(CC) $(CFLAGS) -I$(dir $(TEST_FRAMEWORK_SRC)) -o $@ $^ $(LIBS)
 
