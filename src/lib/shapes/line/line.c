@@ -1,5 +1,6 @@
 #include "line.h"
 #include "../../commons/utils/utils.h"
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -13,6 +14,7 @@ struct Line {
   double x2;
   double y2;
   char *color;
+  bool is_barrier; // true if this line is a barrier (anteparo), false otherwise
 };
 
 void *line_create(int id, double x1, double y1, double x2, double y2,
@@ -31,6 +33,7 @@ void *line_create(int id, double x1, double y1, double x2, double y2,
   line->y1 = y1;
   line->x2 = x2;
   line->y2 = y2;
+  line->is_barrier = false; // Default: not a barrier
 
   line->color = duplicate_string(color);
   if (!line->color) {
@@ -85,4 +88,16 @@ const char *line_get_color(void *line) {
   if (!line)
     return NULL;
   return ((struct Line *)line)->color;
+}
+
+bool line_is_barrier(void *line) {
+  if (!line)
+    return false;
+  return ((struct Line *)line)->is_barrier;
+}
+
+void line_set_barrier(void *line, bool is_barrier) {
+  if (!line)
+    return;
+  ((struct Line *)line)->is_barrier = is_barrier;
 }

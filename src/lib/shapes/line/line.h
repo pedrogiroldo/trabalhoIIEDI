@@ -2,12 +2,14 @@
  * Line ADT - Represents a line geometric element
  *
  * This module provides an abstract data type for lines with start/end points
- * and color attributes.
+ * and color attributes. Lines can also be marked as barriers (anteparos)
+ * which block visibility propagation in bomb operations.
  */
 #ifndef LINE_H
 #define LINE_H
 
 #include "../shapes.h"
+#include <stdbool.h>
 
 typedef void *Line;
 
@@ -71,5 +73,19 @@ double line_get_y2(Line line);
  * @return Line color string (do not free)
  */
 const char *line_get_color(Line line);
+
+/**
+ * Checks if the line is marked as a barrier (anteparo)
+ * @param line Line instance
+ * @return true if line is a barrier, false otherwise
+ */
+bool line_is_barrier(Line line);
+
+/**
+ * Sets the barrier status of the line
+ * @param line Line instance
+ * @param is_barrier true to mark as barrier, false to unmark
+ */
+void line_set_barrier(Line line, bool is_barrier);
 
 #endif // LINE_H
