@@ -10,7 +10,7 @@
 #ifndef CITY_H
 #define CITY_H
 
-#include "../commons/queue/queue.h"
+#include "../commons/list/list.h"
 #include "../commons/stack/stack.h"
 #include "../file_reader/file_reader.h"
 #include "../shapes/shapes.h"
@@ -40,11 +40,11 @@ void city_destroy(City city);
 void city_add_shape(City city, Shape shape);
 
 /**
- * @brief Gets the shapes queue from the city
+ * @brief Gets the shapes list from the city
  * @param city City instance
- * @return Queue containing all shapes
+ * @return List containing all shapes
  */
-Queue city_get_shapes_queue(City city);
+List city_get_shapes_list(City city);
 
 /**
  * @brief Gets the cleanup stack from the city

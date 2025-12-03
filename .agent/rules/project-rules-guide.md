@@ -1,200 +1,145 @@
 ---
-trigger: model_decision
+trigger: always_on
 description: Use these rules to understand the project requirements when implementing any functionality.
 ---
 
-# Guia de Instruções do Projeto - Estrutura de Dados I
+# Estrutura de Dados I - Trabalho II (2025)
 
-## Contexto do Projeto
+[cite_start]**Alienígenas invadiram o planeta Terra!** [cite: 4] [cite_start]Eles lançam 3 tipos de bombas: destruição, pintura e clonagem. [cite: 4, 5] [cite_start]Os alunos do Depto de Física da UEL inventaram uma tinta que, quando usada em anteparos, bloqueia a propagação da explosão da bomba. [cite: 5] [cite_start]Uma das tarefas dos alunos de Estrutura de Dados é determinar a região afetada pela explosão de uma bomba. [cite: 6]
 
-Este projeto simula um cenário onde alienígenas invadem a Terra lançando três tipos de bombas (destruição, pintura e clonagem). O objetivo é implementar um sistema que processa formas geométricas e determina regiões afetadas por explosões, considerando anteparos que bloqueiam propagações.
+---
 
-## Estrutura de Entrada e Saída
+## 1. A Entrada
 
-### Arquivos de Entrada
+> [cite_start]**ATENÇÃO:** Não esqueça de ler a descrição geral dos projetos (Sala de Aula). [cite: 8]
 
-**Arquivo .geo**: Define formas geométricas no plano cartesiano
-- Cada forma possui um identificador inteiro único (i, j, k ≥ 1)
-- Coordenadas são valores reais (x, y)
-- Sistema de coordenadas invertido: origem (0,0) no canto superior esquerdo
+[cite_start]A entrada do algoritmo será basicamente um conjunto de formas geométricas básicas (retângulos, círculos, etc.) dispostos numa região do plano cartesiano. [cite: 9]
 
-**Arquivo .qry**: Contém comandos a serem executados sobre as formas
-- Transforma formas em anteparos
-- Lança bombas de diferentes tipos
-- Clona e modifica formas existentes
+* **Coordenadas e Âncoras:**
+    * Considere a Ilustração 1 (no PDF original). [cite_start]Cada forma geométrica é definida por uma coordenada âncora e por suas dimensões. [cite: 10]
+    * [cite_start]**Círculo:** A âncora é o seu centro e sua dimensão é definida pelo raio ($r$). [cite: 11]
+    * [cite_start]**Retângulo:** A âncora é o seu canto inferior esquerdo (note que o plano cartesiano está "de ponta-cabeça" em relação à representação usual, estilo SVG) e suas dimensões são largura ($w$) e altura ($h$). [cite: 12, 30]
+    * [cite_start]**Texto:** A âncora normalmente é o início do texto, mas pode ser definida como o meio ou o fim. [cite: 13]
+    * [cite_start]**Linha:** Determinada por duas âncoras em suas extremidades. [cite: 14]
+    * [cite_start]As coordenadas são valores reais e cada forma é identificada por um número inteiro. [cite: 15, 16]
 
-### Arquivos de Saída
+### Formato dos Arquivos de Entrada (.geo e .qry)
 
-**Arquivo .txt**: Relatório textual com informações solicitadas pelos comandos
-**Arquivos .svg**: Representações visuais das formas antes e depois do processamento
+[cite_start]Os parâmetros mais comuns nos comandos são: [cite: 25]
+* [cite_start]`i`, `j`, `k`: número inteiro $\ge 1$ (Identificador da forma). [cite: 26]
+* [cite_start]`r`: número real (Raio). [cite: 27]
+* [cite_start]`x`, `y`: números reais (Coordenadas). [cite: 28]
+* [cite_start]`cor`: string (Cor válida no padrão SVG). [cite: 29]
 
-## Formas Geométricas
+#### Comandos do Arquivo `.geo`
 
-### Círculo (comando `c`)
-- **Parâmetros**: `c i x y r corb corp`
-- **Âncora**: Centro do círculo (x, y)
-- **Dimensão**: Raio r
-- **Cores**: corb (borda), corp (preenchimento)
+| Comando | Parâmetros | Descrição |
+| :--- | :--- | :--- |
+| **c** | `i x y r corb corp` | Cria um **círculo** com id `i`: `(x,y)` é o centro; `r` é o raio; [cite_start]`corb` é a cor da borda e `corp` é a cor do preenchimento. [cite: 33] |
+| **r** | `i x y w h corb corp` | Cria um **retângulo** com id `i`: `(x,y)` é a âncora; `w` é a largura e `h` a altura. [cite_start]`corb` (borda) e `corp` (preenchimento). [cite: 33] |
+| **l** | `i x1 y1 x2 y2 cor` | [cite_start]Cria uma **linha** com id `i`, extremidades em `(x1,y1)` e `(x2,y2)`, com a `cor` especificada. [cite: 33] |
+| **t** | `i x y corb corp a txto` | Cria um **texto** `txto` com id `i` em `(x,y)`. `a` determina a âncora: `i` (início), `m` (meio), `f` (fim). [cite_start]`txto` é o último parâmetro e pode conter espaços. [cite: 33] |
+| **ts** | `fFamily fWeight fSize` | Muda o **estilo dos textos** subsequentes. `fFamily`: sans, serif, cursive. [cite_start]`fWeight`: n (normal), b (bold), b+ (bolder), l (lighter). [cite: 33] |
 
-### Retângulo (comando `r`)
-- **Parâmetros**: `r i x y w h corb corp`
-- **Âncora**: Canto inferior esquerdo (x, y)
-- **Dimensões**: Largura w, altura h
-- **Cores**: corb (borda), corp (preenchimento)
+#### Comandos do Arquivo `.qry`
 
-### Linha (comando `l`)
-- **Parâmetros**: `l i x1 y1 x2 y2 cor`
-- **Âncoras**: Duas extremidades (x1, y1) e (x2, y2)
-- **Cor**: Cor única da linha
+[cite_start]O programa executará os comandos contidos no arquivo `.qry`. [cite: 34]
 
-### Texto (comando `t`)
-- **Parâmetros**: `t i x y corb corp a txto`
-- **Âncora**: Definida pelo parâmetro `a`
-  - `i`: início do texto
-  - `m`: meio do texto
-  - `f`: fim do texto
-- **Texto**: Último parâmetro, pode conter espaços
+| Comando | Parâmetros | Descrição |
+| :--- | :--- | :--- |
+| **a** | `i j [v h]` | **Transformação em Anteparos:** As formas com ids na faixa `[i,j]` são pintadas com tinta bloqueante. Círculos viram segmentos horizontais (`h`) ou verticais (`v`). Segmentos devem ter ids únicos. Cor do segmento = cor da borda original. [cite_start]**TXT:** reportar id/tipo original e id/extremos dos segmentos. [cite: 35] |
+| **d** | `x y sfx` | **Bomba de destruição** lançada em `(x,y)`. **TXT:** reportar id/tipo das formas destruídas. [cite_start]**SVG:** desenhar a região de visibilidade (sufixo `sfx` no arquivo ou no próprio svg final se `sfx` for "-"). [cite: 41] |
+| **p** | `x y cor sfx` | **Bomba de pintura** em `(x,y)`. Formas na região de visibilidade têm cores (borda/preenchimento) alteradas para `cor`. **TXT:** reportar id/tipo das pintadas. [cite_start]**SVG:** semelhante ao comando `d`. [cite: 41] |
+| **cln** | `x y dx dy sfx` | **Bomba de clonagem** em `(x,y)`. Clones são transladados em `dx, dy`. Clones devem ter ids únicos. **TXT:** id/tipo das originais e clones. [cite_start]**SVG:** semelhante ao comando `d`. [cite: 41] |
 
-### Estilo de Texto (comando `ts`)
-- **Parâmetros**: `ts fFamily fWeight fSize`
-- **Font Family**: sans (sans-serif), serif, cursive
-- **Font Weight**: n (normal), b (bold), b+ (bolder), l (lighter)
+---
 
-## Comandos do Arquivo .qry
+## 2. Transformação em Anteparos
 
-### Transformação em Anteparos (comando `a`)
-- **Parâmetros**: `a i j [v|h]`
-- **Função**: Transforma formas no intervalo [i, j] em anteparos bloqueantes
-- **Conversões**:
-  - **Círculo**: Vira segmento horizontal (h) ou vertical (v) passando pelo centro
-  - **Retângulo**: Vira 4 segmentos (seus lados)
-  - **Linha**: Permanece linha, mas vira anteparo
-  - **Texto**: Vira segmento horizontal conforme fórmula de conversão
-- **Saída TXT**: Reportar ID, tipo da figura original, ID e extremos dos segmentos
+[cite_start]Quando pintadas com tinta bloqueante, as figuras tornam-se anteparos (linhas) e a figura original deixa de existir (exceto linhas que já eram linhas). [cite: 42, 44]
 
-### Conversão de Texto para Segmento
-Dado texto com âncora (xt, yt) e |t| caracteres:
-- **Âncora 'i'**: x1 = xt, y1 = yt, x2 = xt + 10.0 × |t|, y2 = yt
-- **Âncora 'f'**: x1 = xt - 10.0 × |t|, y1 = yt, x2 = xt, y2 = yt
-- **Âncora 'm'**: x1 = xt - 10.0 × |t| / 2, y1 = yt, x2 = xt + 10.0 × |t| / 2, y2 = yt
+* [cite_start]**Retângulos:** Substituídos por segmentos correspondentes aos seus lados. [cite: 45]
+* [cite_start]**Círculos:** Substituídos por um segmento horizontal ou vertical (passando pelo centro) conforme o diâmetro. [cite: 46]
+* **Textos:** O texto é tratado como um segmento $(x_1, y_1) - (x_2, y_2)$ dependendo da âncora ($a$) e do número de caracteres ($|t|$). [cite_start]O fator de escala por caractere é 10.0. [cite: 50, 51, 52]
 
-### Bomba de Destruição (comando `d`)
-- **Parâmetros**: `d x y sfx`
-- **Função**: Lançada em (x, y), destrói formas na região de visibilidade
-- **Saída TXT**: ID e tipo das formas destruídas
-- **Saída SVG**: Desenhar região de visibilidade
-  - Se sfx = "-": desenha no arquivo SVG final
-  - Caso contrário: cria arquivo separado com sufixo sfx
+**Cálculo do segmento de texto:**
+Sendo $(x_t, y_t)$ a âncora e $|t|$ o tamanho do texto:
+* Âncora **'i'** (início): $x_1 = x_t$, $y_1 = y_t$; [cite_start]$x_2 = x_t + 10.0 \times |t|$, $y_2 = y_t$. [cite: 56, 57]
+* Âncora **'f'** (fim): $x_1 = x_t - 10.0 \times |t|$, $y_1 = y_t$; [cite_start]$x_2 = x_t$, $y_2 = y_t$. [cite: 58, 59]
+* Âncora **'m'** (meio): $x_1 = x_t - 10.0 \times \frac{|t|}{2}$, $y_1 = y_t$; [cite_start]$x_2 = x_t + 10.0 \times \frac{|t|}{2}$, $y_2 = y_t$. [cite: 60]
 
-### Bomba de Pintura (comando `p`)
-- **Parâmetros**: `p x y cor sfx`
-- **Função**: Pinta formas na região de visibilidade com a cor especificada
-- **Efeito**: Altera cores de borda e preenchimento
-- **Saída TXT**: ID e tipo das formas pintadas
-- **Saída SVG**: Similar ao comando d
+---
 
-### Bomba de Clonagem (comando `cln`)
-- **Parâmetros**: `cln x y dx dy sfx`
-- **Função**: Clona formas na região de visibilidade
-- **Translação**: Clones deslocados por (dx, dy)
-- **Identificadores**: Clones recebem IDs únicos
-- **Saída TXT**: ID e tipo das figuras originais e dos clones
-- **Saída SVG**: Similar ao comando d
+## 3. Saída e Visibilidade
 
-## Região de Visibilidade
+* [cite_start]**Saída Textual:** Arquivo texto contendo as informações solicitadas pelo `.qry`. [cite: 75]
+* **Saída Gráfica (SVG):**
+    1.  [cite_start]Ao final do processamento do `.geo`, gerar um `.svg` com todas as formas. [cite: 76]
+    2.  [cite_start]Ao final do processamento do `.qry`, gerar outro `.svg` com as formas remanescentes e as anotações dos comandos. [cite: 77]
+    * [cite_start]*Nota:* Instruções do `.qry` podem remover, modificar ou criar novas formas. [cite: 78]
 
-A região de visibilidade é um polígono representado por sequência ordenada de vértices ou segmentos. Anteparos bloqueiam a propagação das explosões.
+### Região de Visibilidade e Sobreposição
 
-### Detecção de Sobreposição
+A região de visibilidade é um polígono. [cite_start]Para testar se uma forma está dentro da região (ver Figura 3 do PDF), considera-se: [cite: 79, 80]
 
-**Otimização inicial**: Testar sobreposição de bounding boxes primeiro
+1.  [cite_start]**Segmento:** Se qualquer extremidade está dentro do polígono ou se intersecta qualquer aresta do polígono. [cite: 90]
+2.  [cite_start]**Retângulo:** Se qualquer vértice do retângulo está no polígono; se qualquer vértice do polígono está no retângulo; ou se qualquer aresta do retângulo intersecta aresta do polígono. [cite: 92, 93, 94]
+3.  [cite_start]**Círculo:** Se o centro está dentro; se existe aresta do polígono com distância ao centro $\le r$; ou se algum vértice do polígono está dentro do círculo. [cite: 96, 97, 98, 99]
 
-#### Para Segmentos (Linhas):
-1. Qualquer extremidade do segmento está dentro do polígono
-2. Segmento intersecta qualquer aresta do polígono
+---
 
-#### Para Retângulos:
-1. Qualquer vértice do retângulo está dentro do polígono
-2. Qualquer vértice do polígono está dentro do retângulo
-3. Qualquer aresta do retângulo intersecta qualquer aresta do polígono
+## 4. Implementação
 
-#### Para Círculos:
-1. Centro do círculo está dentro do polígono
-2. Existe alguma aresta do polígono cuja distância ao centro ≤ r
-3. Algum vértice do polígono está dentro do círculo (distância ≤ r)
+* [cite_start]**TADs:** Implementar os TADs postados na Sala de Aula. [cite: 102]
+* **Modularização:** É **proibido** definir structs em arquivos `.h`. O `.h` deve ser bem documentado (é um contrato). [cite_start]Cada estrutura deve ter seu módulo `.c` e `.h` e um programa de teste unitário separado. [cite: 103, 104, 105, 106]
+* [cite_start]**Estruturas de Dados:** Usar uma **árvore** para os segmentos ativos e **listas** para armazenar as formas. [cite: 107]
+* [cite_start]**Ordenação:** O algoritmo deve estar preparado para usar o `qsort` (biblioteca padrão) e uma versão modificada do `mergesort` (implementada por você). [cite: 108]
+    * [cite_start]Para subvetores "pequenos" (parâmetro `-i`), usar o `insertionsort`. [cite: 109]
 
-## Requisitos de Implementação
+---
 
-### Estruturas de Dados
-- **TADs obrigatórios**: Implementar conforme especificações da Sala de Aula
-- **Árvore**: Para armazenar segmentos ativos
-- **Listas**: Para armazenar as formas geométricas
-- **Proibido**: Definir structs em arquivos de cabeçalho (.h)
+## 5. Avaliação
 
-### Modularização
-- Cada estrutura de dados em módulo separado (.h e .c)
-- Arquivo .h bem documentado (contrato da interface)
-- Testes unitários para cada módulo (arquivo .c separado)
+A nota será proporcional aos testes bem sucedidos, com descontos aplicáveis. [cite_start]Fraude resulta em nota ZERO. [cite: 112, 113, 114]
 
-### Algoritmos de Ordenação
-- Usar **qsort** da biblioteca padrão do C
-- Implementar versão modificada do **mergesort**
-- Quando subvetor for "pequeno" (parâmetro -i), usar **insertionsort**
-- Algoritmo de visibilidade utiliza ordenação
+| Critério de Desconto | Valor do Desconto |
+| :--- | :--- |
+| Definir struct em arquivo `.h` | [cite_start]2.5 [cite: 115] |
+| [cite_start]Modularização pobre (`.h` mal projetado/documentado) | até 2.0 [cite: 115] |
+| Não implementar estruturas pedidas | [cite_start]Gravíssimo [cite: 118] |
+| [cite_start]Procedimentos extensos/complicados | até 1.0 [cite: 119] |
+| [cite_start]Escolha/uso de estrutura pouco eficiente | até 2.0 [cite: 119] |
+| [cite_start]Poucos commits ou concentrados no final | até 3.0 (pode indicar fraude) [cite: 119] |
+| Implementação ineficiente/desidiosa | [cite_start]Até 1.5 [cite: 119] |
+| Não usar o makefile provido | [cite_start]Sem desconto direto (salvo problemas graves decorrentes) [cite: 119] |
+| Erro de compilação | [cite_start]Nota Zero (nenhum teste executado) [cite: 119] |
 
-### Compilação
-- Opção obrigatória: `-fstack-protector-all`
-- Padrão C99: `-std=c99`
-- Usar makefile provido
+---
 
-## Parâmetros do Programa
+## 6. O Que Entregar
 
-### Obrigatórios
-- **-f a.geo**: Arquivo com descrição das formas (sob diretório BED)
-- **-o ah**: Diretório-base de saída (BSD)
+* [cite_start]Os arquivos devem estar em um repositório GIT. [cite: 122]
+* [cite_start]Submeter no Classroom um arquivo `.txt` contendo uma linha no formato: `apelido url-do-repositorio`. [cite: 122, 124]
+    * [cite_start]Exemplo: `joseMane https://github.com/zemane/t2.git` [cite: 126]
 
-### Opcionais
-- **-e ah**: Diretório-base de entrada (BED)
-- **-q ac.qry**: Arquivo com consultas (sob diretório BED)
-- **-to [q|m]**: Tipo de ordenação (q: qsort, m: mergesort). Default: q
-- **-i n**: Tamanho mínimo para insertionsort. Default: 10
+---
 
-## Nomenclatura de Arquivos de Saída
+## 7. Parâmetros do Programa (`ted`)
 
-### Apenas .geo fornecido:
-- `arq.svg`
+[cite_start]O programa deve aceitar os seguintes parâmetros via linha de comando: [cite: 130]
 
-### Com .geo e .qry:
-- `arq.svg`
-- `arq-arqcons.svg`
-- `arq-arqcons.txt`
+| Parâmetro | Opcional | Descrição |
+| :--- | :--- | :--- |
+| `-e path` | Sim | [cite_start]Diretório-base de entrada (BED). [cite: 131] |
+| `-f arg.geo` | Não | [cite_start]Arquivo de descrição da cidade (sob o BED). [cite: 131] |
+| `-o path` | Não | [cite_start]Diretório-base de saída (BSD). [cite: 131] |
+| `-q arqcons.qry` | Sim | [cite_start]Arquivo com consultas (sob o BED). [cite: 131] |
+| `-to [gm]` | Sim | Tipo de ordenação: `q` (qsort) ou `m` (mergesort). [cite_start]Default: `q`. [cite: 131] |
+| `-in` | Sim | Limite para insertionsort. [cite_start]Default: 10. [cite: 131] |
 
-### Com sufixo em comandos:
-- `arq.svg`
-- `arq-arqcons.svg`
-- `arq-arqcons.txt`
-- `arq-arqcons-sufx.svg` e/ou `arq-arqcons-sufx.txt`
+**Resumo dos Arquivos Produzidos:**
+[cite_start]Dependendo dos parâmetros e comandos, o programa gera arquivos `.svg` e `.txt` com nomes compostos (ex: `arq-arqcons-sufx.svg`). [cite: 133]
 
-## Critérios de Penalização
-
-- **-2.5**: Definir struct em arquivo .h
-- **até -2.0**: Modularização pobre, .h mal documentado
-- **até -1.0**: Procedimentos extensos/complicados
-- **até -2.0**: Estrutura pouco eficiente
-- **até -3.0**: Poucos commits ou concentrados no final
-- **até -1.5**: Implementação ineficiente/desidiosa
-- **Nota ZERO**: Erro de compilação ou FRAUDE detectada
-
-## Entrega
-
-Submeter arquivo .txt com formato:
-```
-apelido url-do-repositorio
-```
-
-Exemplo:
-```
-joseMane https://github.com/zemane/t2.git
-```
-
-O repositório deve estar organizado conforme descrição geral do projeto.
+> **ATENÇÃO:**
+> * Os fontes devem ser compilados com a opção `-fstack-protector-all`.
+> [cite_start]* Adotar padrão C99 (`-std=c99`). [cite: 135]

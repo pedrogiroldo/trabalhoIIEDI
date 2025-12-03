@@ -8,9 +8,9 @@
 #include <string.h>
 
 typedef struct {
-  Queue shapes_queue;
+  List shapes_list;
   Stack cleanup_stack;
-  Queue svg_queue;
+  List svg_list;
 } CityImpl;
 
 City city_create(void) {
@@ -20,9 +20,9 @@ City city_create(void) {
     return NULL;
   }
 
-  city->shapes_queue = queue_create();
+  city->shapes_list = list_create();
   city->cleanup_stack = stack_create();
-  city->svg_queue = queue_create();
+  city->svg_list = list_create();
 
   return (City)city;
 }
@@ -30,8 +30,8 @@ City city_create(void) {
 void city_destroy(City city) {
   CityImpl *impl = (CityImpl *)city;
 
-  queue_destroy(impl->shapes_queue);
-  queue_destroy(impl->svg_queue);
+  list_destroy(impl->shapes_list);
+  list_destroy(impl->svg_list);
 
   while (!stack_is_empty(impl->cleanup_stack)) {
     Shape shape = stack_pop(impl->cleanup_stack);
@@ -45,14 +45,14 @@ void city_destroy(City city) {
 void city_add_shape(City city, Shape shape) {
   CityImpl *impl = (CityImpl *)city;
 
-  queue_enqueue(impl->shapes_queue, shape);
+  list_insert_back(impl->shapes_list, shape);
   stack_push(impl->cleanup_stack, shape);
-  queue_enqueue(impl->svg_queue, shape);
+  list_insert_back(impl->svg_list, shape);
 }
 
-Queue city_get_shapes_queue(City city) {
+List city_get_shapes_list(City city) {
   CityImpl *impl = (CityImpl *)city;
-  return impl->shapes_queue;
+  return impl->shapes_list;
 }
 
 Stack city_get_cleanup_stack(City city) {
@@ -117,8 +117,10 @@ void city_generate_svg(City city, const char *output_path, FileData file_data,
       file,
       "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 1000 1000\">\n");
 
-  while (!queue_is_empty(impl->svg_queue)) {
-    Shape shape = queue_dequeue(impl->svg_queue);
+  // Iterate over list using index-based access
+  int svg_list_size = list_size(impl->svg_list);
+  for (int i = 0; i < svg_list_size; i++) {
+    Shape shape = list_get(impl->svg_list, i);
     if (shape != NULL) {
       ShapeType type = shape_get_type(shape);
       if (type == CIRCLE) {

@@ -18,6 +18,7 @@ TEST_FRAMEWORK_SRC = src/lib/test_framework/test_framework.c
 COMMON_DEPS = src/lib/commons/queue/queue.c \
               src/lib/commons/stack/stack.c \
               src/lib/commons/utils/utils.c \
+              src/lib/commons/list/list.c \
               src/lib/shapes/shapes.c \
               src/lib/shapes/circle/circle.c \
               src/lib/shapes/rectangle/rectangle.c \
