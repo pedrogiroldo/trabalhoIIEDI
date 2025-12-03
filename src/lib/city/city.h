@@ -63,4 +63,58 @@ Stack city_get_cleanup_stack(City city);
 void city_generate_svg(City city, const char *output_path, FileData file_data,
                        const char *command_suffix);
 
+/**
+ * @brief Generates an SVG file with all shapes and a visibility polygon
+ * @param city City instance
+ * @param output_path Directory path for output
+ * @param file_data File data containing original file name
+ * @param command_suffix Optional suffix for the output file (can be NULL)
+ * @param visibility_polygon Visibility polygon to render (from visibility
+ * module)
+ * @param source_x X coordinate of the visibility source point
+ * @param source_y Y coordinate of the visibility source point
+ */
+void city_generate_svg_with_visibility(City city, const char *output_path,
+                                       FileData file_data,
+                                       const char *command_suffix,
+                                       void *visibility_polygon,
+                                       double source_x, double source_y);
+
+/**
+ * @brief Gets all barrier segments from the city
+ * @param city City instance
+ * @return List of Line shapes marked as barriers
+ */
+List city_get_barriers(City city);
+
+/**
+ * @brief Removes a shape from the city by reference
+ * @param city City instance
+ * @param shape Shape to remove
+ * @return true if removed, false if not found
+ */
+bool city_remove_shape(City city, Shape shape);
+
+/**
+ * @brief Gets the next available unique ID for shapes
+ * @param city City instance
+ * @return Next unique ID
+ */
+int city_get_next_id(City city);
+
+/**
+ * @brief Gets a shape by ID
+ * @param city City instance
+ * @param id Shape ID to find
+ * @return Shape with given ID or NULL if not found
+ */
+Shape city_get_shape_by_id(City city, int id);
+
+/**
+ * @brief Updates the maximum ID tracked by the city
+ * @param city City instance
+ * @param id ID to consider for maximum
+ */
+void city_update_max_id(City city, int id);
+
 #endif // CITY_H

@@ -101,3 +101,17 @@ const char *rectangle_get_fill_color(void *rectangle) {
     return NULL;
   return ((struct Rectangle *)rectangle)->fill_color;
 }
+
+void rectangle_set_colors(void *rectangle, const char *color) {
+  if (!rectangle || !color) {
+    return;
+  }
+
+  struct Rectangle *r = (struct Rectangle *)rectangle;
+
+  free(r->border_color);
+  free(r->fill_color);
+
+  r->border_color = duplicate_string(color);
+  r->fill_color = duplicate_string(color);
+}

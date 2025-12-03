@@ -75,6 +75,13 @@ double line_get_y2(Line line);
 const char *line_get_color(Line line);
 
 /**
+ * Sets the color of the line
+ * @param line Line instance
+ * @param color New color
+ */
+void line_set_color(Line line, const char *color);
+
+/**
  * Checks if the line is marked as a barrier (anteparo)
  * @param line Line instance
  * @return true if line is a barrier, false otherwise

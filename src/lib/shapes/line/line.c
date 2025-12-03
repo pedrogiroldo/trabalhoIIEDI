@@ -101,3 +101,14 @@ void line_set_barrier(void *line, bool is_barrier) {
     return;
   ((struct Line *)line)->is_barrier = is_barrier;
 }
+
+void line_set_color(void *line, const char *color) {
+  if (!line || !color) {
+    return;
+  }
+
+  struct Line *l = (struct Line *)line;
+
+  free(l->color);
+  l->color = duplicate_string(color);
+}

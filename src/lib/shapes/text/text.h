@@ -80,4 +80,11 @@ char text_get_anchor(Text text);
  */
 const char *text_get_text(Text text);
 
+/**
+ * Sets both border and fill colors of the text
+ * @param text Text instance
+ * @param color New color for both border and fill
+ */
+void text_set_colors(Text text, const char *color);
+
 #endif // TEXT_H

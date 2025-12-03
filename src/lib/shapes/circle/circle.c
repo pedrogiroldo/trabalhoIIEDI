@@ -92,3 +92,19 @@ const char *circle_get_fill_color(void *circle) {
     return NULL;
   return ((struct Circle *)circle)->fill_color;
 }
+
+void circle_set_colors(void *circle, const char *color) {
+  if (!circle || !color) {
+    return;
+  }
+
+  struct Circle *c = (struct Circle *)circle;
+
+  // Free old colors
+  free(c->border_color);
+  free(c->fill_color);
+
+  // Set new colors
+  c->border_color = duplicate_string(color);
+  c->fill_color = duplicate_string(color);
+}

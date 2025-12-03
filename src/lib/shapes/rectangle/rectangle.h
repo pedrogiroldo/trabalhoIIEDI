@@ -80,4 +80,11 @@ const char *rectangle_get_border_color(Rectangle rectangle);
  */
 const char *rectangle_get_fill_color(Rectangle rectangle);
 
+/**
+ * Sets both border and fill colors of the rectangle
+ * @param rectangle Rectangle instance
+ * @param color New color for both border and fill
+ */
+void rectangle_set_colors(Rectangle rectangle, const char *color);
+
 #endif // RECTANGLE_H

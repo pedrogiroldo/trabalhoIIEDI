@@ -1,4 +1,8 @@
 #include "lib/args_handler/args_handler.h"
+#include "lib/city/city.h"
+#include "lib/file_reader/file_reader.h"
+#include "lib/geo_handler/geo_handler.h"
+#include "lib/qry_handler/qry_handler.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -61,7 +65,41 @@ int main(int argc, char *argv[]) {
     exit(1);
   }
 
-  // continue here
+  // Read .geo file
+  FileData geo_file_data = file_data_create(geo_input_path);
+  if (geo_file_data == NULL) {
+    printf("Error: Failed to read .geo file: %s\n", geo_input_path);
+    exit(1);
+  }
+
+  // Create city from .geo file
+  City city =
+      geo_handler_create_city_from_file(geo_file_data, output_path, NULL);
+  if (city == NULL) {
+    printf("Error: Failed to create city from .geo file\n");
+    file_data_destroy(geo_file_data);
+    exit(1);
+  }
+
+  // Process .qry file if provided
+  if (qry_input_path != NULL) {
+    FileData qry_file_data = file_data_create(qry_input_path);
+    if (qry_file_data == NULL) {
+      printf("Error: Failed to read .qry file: %s\n", qry_input_path);
+      city_destroy(city);
+      file_data_destroy(geo_file_data);
+      exit(1);
+    }
+
+    // Process query commands
+    qry_handler_process_file(city, qry_file_data, output_path);
+
+    file_data_destroy(qry_file_data);
+  }
+
+  // Clean up
+  city_destroy(city);
+  file_data_destroy(geo_file_data);
 
   // Clean up allocated memory
   if (full_geo_path != NULL) {

@@ -72,4 +72,11 @@ const char *circle_get_border_color(Circle circle);
  */
 const char *circle_get_fill_color(Circle circle);
 
+/**
+ * Sets both border and fill colors of the circle
+ * @param circle Circle instance
+ * @param color New color for both border and fill
+ */
+void circle_set_colors(Circle circle, const char *color);
+
 #endif // CIRCLE_H

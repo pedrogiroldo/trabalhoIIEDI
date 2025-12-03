@@ -109,3 +109,17 @@ const char *text_get_text(void *text) {
     return NULL;
   return ((struct Text *)text)->text;
 }
+
+void text_set_colors(void *text, const char *color) {
+  if (!text || !color) {
+    return;
+  }
+
+  struct Text *t = (struct Text *)text;
+
+  free(t->border_color);
+  free(t->fill_color);
+
+  t->border_color = duplicate_string(color);
+  t->fill_color = duplicate_string(color);
+}
