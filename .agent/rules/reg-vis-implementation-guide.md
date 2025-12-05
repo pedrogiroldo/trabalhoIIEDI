@@ -1,8 +1,7 @@
 ---
-trigger: manual
+trigger: model_decision
+description: When you need to change somethin on the reg vis algorithm
 ---
-
-
 
 # Implementation Guide: Angular Sweep Visibility Algorithm
 

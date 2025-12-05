@@ -8,7 +8,9 @@
 #include "../shapes/rectangle/rectangle.h"
 #include "../shapes/shapes.h"
 #include "../shapes/text/text.h"
+#include "../visibility/geometry.h"
 #include "../visibility/visibility.h"
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -25,8 +27,14 @@ static void execute_cloning_bomb(City city, const char *output_path,
                                  FileData file_data, const char *suffix,
                                  FILE *txt_output);
 static bool shape_in_visibility_region(Shape shape, VisibilityPolygon polygon);
-static void get_shape_center(Shape shape, double *x, double *y);
 static const char *get_shape_type_name(ShapeType type);
+
+// Visibility check helpers
+static bool is_segment_visible(double x1, double y1, double x2, double y2,
+                               VisibilityPolygon polygon);
+static bool is_rectangle_visible(Rectangle rect, VisibilityPolygon polygon);
+static bool is_circle_visible(Circle circle, VisibilityPolygon polygon);
+static bool is_point_in_rect(double px, double py, Rectangle rect);
 
 void qry_handler_process_file(City city, FileData file_data,
                               const char *output_path) {
@@ -552,49 +560,157 @@ static bool shape_in_visibility_region(Shape shape, VisibilityPolygon polygon) {
     return false;
   }
 
-  double cx, cy;
-  get_shape_center(shape, &cx, &cy);
-
-  return visibility_polygon_contains_point(polygon, cx, cy);
-}
-
-static void get_shape_center(Shape shape, double *x, double *y) {
-  if (!shape || !x || !y) {
-    return;
-  }
-
   ShapeType type = shape_get_type(shape);
 
   switch (type) {
-  case CIRCLE: {
-    Circle circle = (Circle)shape_get_shape(shape);
-    *x = circle_get_x(circle);
-    *y = circle_get_y(circle);
-    break;
-  }
-  case RECTANGLE: {
-    Rectangle rect = (Rectangle)shape_get_shape(shape);
-    *x = rectangle_get_x(rect) + rectangle_get_width(rect) / 2.0;
-    *y = rectangle_get_y(rect) + rectangle_get_height(rect) / 2.0;
-    break;
-  }
+  case CIRCLE:
+    return is_circle_visible((Circle)shape_get_shape(shape), polygon);
+  case RECTANGLE:
+    return is_rectangle_visible((Rectangle)shape_get_shape(shape), polygon);
   case LINE: {
     Line line = (Line)shape_get_shape(shape);
-    *x = (line_get_x1(line) + line_get_x2(line)) / 2.0;
-    *y = (line_get_y1(line) + line_get_y2(line)) / 2.0;
-    break;
+    return is_segment_visible(line_get_x1(line), line_get_y1(line),
+                              line_get_x2(line), line_get_y2(line), polygon);
   }
   case TEXT: {
     Text text = (Text)shape_get_shape(shape);
-    *x = text_get_x(text);
-    *y = text_get_y(text);
-    break;
+    // Approximate text as a point at its anchor for now, or small segment
+    // Guide says text is treated as segment for barriers, but for visibility?
+    // Assuming point check at anchor is sufficient for now, or use segment
+    // logic if needed. Let's use point check for simplicity unless specified
+    // otherwise.
+    return visibility_polygon_contains_point(polygon, text_get_x(text),
+                                             text_get_y(text));
   }
   default:
-    *x = 0.0;
-    *y = 0.0;
-    break;
+    return false;
   }
+}
+
+static bool is_segment_visible(double x1, double y1, double x2, double y2,
+                               VisibilityPolygon polygon) {
+  Point *vertices = visibility_polygon_get_vertices(polygon);
+  int count = visibility_polygon_get_vertex_count(polygon);
+
+  // 1. Check if endpoints are inside
+  if (visibility_polygon_contains_point(polygon, x1, y1) ||
+      visibility_polygon_contains_point(polygon, x2, y2)) {
+    return true;
+  }
+
+  // 2. Check intersection with polygon edges
+  for (int i = 0; i < count; i++) {
+    int j = (i + 1) % count;
+    double px1 = geometry_point_get_x(vertices[i]);
+    double py1 = geometry_point_get_y(vertices[i]);
+    double px2 = geometry_point_get_x(vertices[j]);
+    double py2 = geometry_point_get_y(vertices[j]);
+
+    if (geometry_segment_intersects_segment(x1, y1, x2, y2, px1, py1, px2,
+                                            py2)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+static bool is_point_in_rect(double px, double py, Rectangle rect) {
+  double rx = rectangle_get_x(rect);
+  double ry = rectangle_get_y(rect);
+  double rw = rectangle_get_width(rect);
+  double rh = rectangle_get_height(rect);
+  return px >= rx && px <= rx + rw && py >= ry && py <= ry + rh;
+}
+
+static bool is_rectangle_visible(Rectangle rect, VisibilityPolygon polygon) {
+  double rx = rectangle_get_x(rect);
+  double ry = rectangle_get_y(rect);
+  double rw = rectangle_get_width(rect);
+  double rh = rectangle_get_height(rect);
+
+  // Vertices of rectangle
+  double vx[4] = {rx, rx + rw, rx + rw, rx};
+  double vy[4] = {ry, ry, ry + rh, ry + rh};
+
+  // 1. Check if any rect vertex is inside polygon
+  for (int i = 0; i < 4; i++) {
+    if (visibility_polygon_contains_point(polygon, vx[i], vy[i])) {
+      return true;
+    }
+  }
+
+  Point *poly_verts = visibility_polygon_get_vertices(polygon);
+  int count = visibility_polygon_get_vertex_count(polygon);
+
+  // 2. Check if any polygon vertex is inside rect
+  for (int i = 0; i < count; i++) {
+    if (is_point_in_rect(geometry_point_get_x(poly_verts[i]),
+                         geometry_point_get_y(poly_verts[i]), rect)) {
+      return true;
+    }
+  }
+
+  // 3. Check intersection of edges
+  for (int i = 0; i < 4; i++) {
+    double r_x1 = vx[i];
+    double r_y1 = vy[i];
+    double r_x2 = vx[(i + 1) % 4];
+    double r_y2 = vy[(i + 1) % 4];
+
+    for (int j = 0; j < count; j++) {
+      int k = (j + 1) % count;
+      double p_x1 = geometry_point_get_x(poly_verts[j]);
+      double p_y1 = geometry_point_get_y(poly_verts[j]);
+      double p_x2 = geometry_point_get_x(poly_verts[k]);
+      double p_y2 = geometry_point_get_y(poly_verts[k]);
+
+      if (geometry_segment_intersects_segment(r_x1, r_y1, r_x2, r_y2, p_x1,
+                                              p_y1, p_x2, p_y2)) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
+static bool is_circle_visible(Circle circle, VisibilityPolygon polygon) {
+  double cx = circle_get_x(circle);
+  double cy = circle_get_y(circle);
+  double r = circle_get_radius(circle);
+
+  // 1. Check if center is inside
+  if (visibility_polygon_contains_point(polygon, cx, cy)) {
+    return true;
+  }
+
+  Point *poly_verts = visibility_polygon_get_vertices(polygon);
+  int count = visibility_polygon_get_vertex_count(polygon);
+
+  // 2. Check if any polygon vertex is inside circle
+  for (int i = 0; i < count; i++) {
+    double px = geometry_point_get_x(poly_verts[i]);
+    double py = geometry_point_get_y(poly_verts[i]);
+    if (geometry_distance(cx, cy, px, py) <= r) {
+      return true;
+    }
+  }
+
+  // 3. Check if any polygon edge intersects circle (dist to center <= r)
+  for (int i = 0; i < count; i++) {
+    int j = (i + 1) % count;
+    double px1 = geometry_point_get_x(poly_verts[i]);
+    double py1 = geometry_point_get_y(poly_verts[i]);
+    double px2 = geometry_point_get_x(poly_verts[j]);
+    double py2 = geometry_point_get_y(poly_verts[j]);
+
+    if (geometry_distance_point_segment(cx, cy, px1, py1, px2, py2) <= r) {
+      return true;
+    }
+  }
+
+  return false;
 }
 
 static const char *get_shape_type_name(ShapeType type) {

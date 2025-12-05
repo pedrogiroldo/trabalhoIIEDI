@@ -10,7 +10,7 @@ typedef struct BSTNodeImpl {
   struct BSTNodeImpl *parent; // Parent node (for efficient deletion)
 } BSTNodeImpl;
 
-// Internal BST structure 
+// Internal BST structure
 typedef struct {
   BSTNodeImpl *root;      // Root of the tree
   BSTCompareFunc compare; // Comparison function
@@ -297,4 +297,21 @@ void bst_destroy(BST tree, BSTDestroyFunc destroy_func) {
 
   bst_clear(tree, destroy_func);
   free(tree);
+}
+
+// Helper for in-order traversal
+static void foreach_inorder(BSTNodeImpl *node, BSTForeachFunc func,
+                            void *user_data) {
+  if (node == NULL)
+    return;
+  foreach_inorder(node->left, func, user_data);
+  func(node->data, user_data);
+  foreach_inorder(node->right, func, user_data);
+}
+
+void bst_foreach(BST tree, BSTForeachFunc func, void *user_data) {
+  if (tree == NULL || func == NULL)
+    return;
+  BSTImpl *impl = (BSTImpl *)tree;
+  foreach_inorder(impl->root, func, user_data);
 }

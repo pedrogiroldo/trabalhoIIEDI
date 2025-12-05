@@ -113,4 +113,33 @@ int geometry_compare_angles(double angle1, double angle2);
 double geometry_cross_product(double x1, double y1, double x2, double y2,
                               double x3, double y3);
 
+/**
+ * @brief Checks if two line segments intersect
+ * @param x1 First segment start X
+ * @param y1 First segment start Y
+ * @param x2 First segment end X
+ * @param y2 First segment end Y
+ * @param x3 Second segment start X
+ * @param y3 Second segment start Y
+ * @param x4 Second segment end X
+ * @param y4 Second segment end Y
+ * @return true if segments intersect, false otherwise
+ */
+bool geometry_segment_intersects_segment(double x1, double y1, double x2,
+                                         double y2, double x3, double y3,
+                                         double x4, double y4);
+
+/**
+ * @brief Calculates the shortest distance from a point to a line segment
+ * @param px Point X coordinate
+ * @param py Point Y coordinate
+ * @param x1 Segment start X
+ * @param y1 Segment start Y
+ * @param x2 Segment end X
+ * @param y2 Segment end Y
+ * @return Shortest distance from point to segment
+ */
+double geometry_distance_point_segment(double px, double py, double x1,
+                                       double y1, double x2, double y2);
+
 #endif // GEOMETRY_H

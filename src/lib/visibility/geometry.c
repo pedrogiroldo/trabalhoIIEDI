@@ -165,3 +165,42 @@ double geometry_cross_product(double x1, double y1, double x2, double y2,
 
   return v1x * v2y - v1y * v2x;
 }
+
+bool geometry_segment_intersects_segment(double x1, double y1, double x2,
+                                         double y2, double x3, double y3,
+                                         double x4, double y4) {
+  // Using cross product to check orientation
+  double cp1 = geometry_cross_product(x1, y1, x2, y2, x3, y3);
+  double cp2 = geometry_cross_product(x1, y1, x2, y2, x4, y4);
+  double cp3 = geometry_cross_product(x3, y3, x4, y4, x1, y1);
+  double cp4 = geometry_cross_product(x3, y3, x4, y4, x2, y2);
+
+  if (((cp1 > 0 && cp2 < 0) || (cp1 < 0 && cp2 > 0)) &&
+      ((cp3 > 0 && cp4 < 0) || (cp3 < 0 && cp4 > 0))) {
+    return true;
+  }
+
+  // Note: This simplified check handles strict intersection.
+  // Collinear or endpoint cases might need more checks if strictness is
+  // required.
+  return false;
+}
+
+double geometry_distance_point_segment(double px, double py, double x1,
+                                       double y1, double x2, double y2) {
+  double l2 = (x2 - x1) * (x2 - x1) + (y2 - y1) * (y2 - y1);
+  if (l2 == 0.0)
+    return geometry_distance(px, py, x1, y1);
+
+  double t = ((px - x1) * (x2 - x1) + (py - y1) * (y2 - y1)) / l2;
+
+  if (t < 0.0)
+    return geometry_distance(px, py, x1, y1);
+  if (t > 1.0)
+    return geometry_distance(px, py, x2, y2);
+
+  double proj_x = x1 + t * (x2 - x1);
+  double proj_y = y1 + t * (y2 - y1);
+
+  return geometry_distance(px, py, proj_x, proj_y);
+}

@@ -108,4 +108,19 @@ void bst_clear(BST tree, BSTDestroyFunc destroy_func);
  */
 void bst_destroy(BST tree, BSTDestroyFunc destroy_func);
 
+/**
+ * Callback function type for BST traversal.
+ * @param data Element data
+ * @param user_data User-provided context
+ */
+typedef void (*BSTForeachFunc)(void *data, void *user_data);
+
+/**
+ * Iterates through all elements in the BST (in-order traversal).
+ * @param tree BST handle
+ * @param func Callback function to call for each element
+ * @param user_data User-provided context passed to callback
+ */
+void bst_foreach(BST tree, BSTForeachFunc func, void *user_data);
+
 #endif // BST_H
