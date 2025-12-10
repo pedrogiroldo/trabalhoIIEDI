@@ -89,12 +89,23 @@ static Point2D ray_segment_intersect(Point2D source, Point2D direction_point,
 
   double denom = dx * sy - dy * sx;
   if (fabs(denom) < 1e-10) {
+    // Parallel - extend far in ray direction
     double len = sqrt(dx * dx + dy * dy);
     return (Point2D){source.x + dx / len * 10000, source.y + dy / len * 10000};
   }
 
   double t = ((x1 - source.x) * sy - (y1 - source.y) * sx) / denom;
-  return (Point2D){source.x + t * dx, source.y + t * dy};
+  double u = ((x1 - source.x) * dy - (y1 - source.y) * dx) / denom;
+
+  // Only valid if intersection is beyond direction_point (t >= 1) and on
+  // segment (0 <= u <= 1)
+  if (t >= 1.0 - 1e-9 && u >= -1e-9 && u <= 1.0 + 1e-9) {
+    return (Point2D){source.x + t * dx, source.y + t * dy};
+  }
+
+  // No valid intersection in the forward direction - extend ray far
+  double len = sqrt(dx * dx + dy * dy);
+  return (Point2D){source.x + dx / len * 10000, source.y + dy / len * 10000};
 }
 
 static double calc_ray_segment_distance(Segment *s, Point2D source,
@@ -210,11 +221,58 @@ VisibilityPolygon visibility_calculate(double x, double y, List barriers,
   int segment_count = 0;
   Segment **segments = malloc(sizeof(Segment *) * segment_capacity);
 
-  double box_r = max_radius * 2;
-  double box[4][2] = {{x - box_r, y - box_r},
-                      {x + box_r, y - box_r},
-                      {x + box_r, y + box_r},
-                      {x - box_r, y + box_r}};
+  // First pass: calculate bounding box from all barriers
+  double min_x = x, max_x = x, min_y = y, max_y = y;
+  int barrier_count = list_size(barriers);
+  for (int i = 0; i < barrier_count; i++) {
+    Shape shape = list_get(barriers, i);
+    if (!shape)
+      continue;
+    Line l = (Line)shape_get_shape(shape);
+    if (!l || !line_is_barrier(l))
+      continue;
+
+    double x1 = line_get_x1(l), y1 = line_get_y1(l);
+    double x2 = line_get_x2(l), y2 = line_get_y2(l);
+    if (x1 < min_x)
+      min_x = x1;
+    if (x2 < min_x)
+      min_x = x2;
+    if (x1 > max_x)
+      max_x = x1;
+    if (x2 > max_x)
+      max_x = x2;
+    if (y1 < min_y)
+      min_y = y1;
+    if (y2 < min_y)
+      min_y = y2;
+    if (y1 > max_y)
+      max_y = y1;
+    if (y2 > max_y)
+      max_y = y2;
+  }
+
+  // Add margin around the content (fixed 50 units)
+  double margin = 50;
+  double box_min_x = min_x - margin;
+  double box_max_x = max_x + margin;
+  double box_min_y = min_y - margin;
+  double box_max_y = max_y + margin;
+
+  // Ensure bomb is inside the box
+  if (x - margin < box_min_x)
+    box_min_x = x - margin;
+  if (x + margin > box_max_x)
+    box_max_x = x + margin;
+  if (y - margin < box_min_y)
+    box_min_y = y - margin;
+  if (y + margin > box_max_y)
+    box_max_y = y + margin;
+
+  double box[4][2] = {{box_min_x, box_min_y},
+                      {box_max_x, box_min_y},
+                      {box_max_x, box_max_y},
+                      {box_min_x, box_max_y}};
   for (int i = 0; i < 4; i++) {
     Segment *s = malloc(sizeof(Segment));
     s->p_initial = (Point2D){box[i][0], box[i][1]};
@@ -225,7 +283,6 @@ VisibilityPolygon visibility_calculate(double x, double y, List barriers,
   }
 
   printf("\nBarriers:\n");
-  int barrier_count = list_size(barriers);
   for (int i = 0; i < barrier_count; i++) {
     Shape shape = list_get(barriers, i);
     if (!shape)
