@@ -587,6 +587,44 @@ static bool shape_in_visibility_region(Shape shape, VisibilityPolygon polygon) {
   }
 }
 
+// Helper to check if a point lies on a segment (within tolerance)
+static bool point_on_segment(double px, double py, double x1, double y1,
+                             double x2, double y2) {
+  // Check collinearity using cross product
+  double cross = (py - y1) * (x2 - x1) - (px - x1) * (y2 - y1);
+  if (fabs(cross) > 1e-6) {
+    return false; // Not collinear
+  }
+
+  // Check if point is within segment bounds
+  double min_x = fmin(x1, x2) - 1e-6;
+  double max_x = fmax(x1, x2) + 1e-6;
+  double min_y = fmin(y1, y2) - 1e-6;
+  double max_y = fmax(y1, y2) + 1e-6;
+
+  return px >= min_x && px <= max_x && py >= min_y && py <= max_y;
+}
+
+// Check if a point is on the boundary of the polygon
+static bool point_on_polygon_boundary(double px, double py,
+                                      VisibilityPolygon polygon) {
+  Point *vertices = visibility_polygon_get_vertices(polygon);
+  int count = visibility_polygon_get_vertex_count(polygon);
+
+  for (int i = 0; i < count; i++) {
+    int j = (i + 1) % count;
+    double vx1 = geometry_point_get_x(vertices[i]);
+    double vy1 = geometry_point_get_y(vertices[i]);
+    double vx2 = geometry_point_get_x(vertices[j]);
+    double vy2 = geometry_point_get_y(vertices[j]);
+
+    if (point_on_segment(px, py, vx1, vy1, vx2, vy2)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 static bool is_segment_visible(double x1, double y1, double x2, double y2,
                                VisibilityPolygon polygon) {
   Point *vertices = visibility_polygon_get_vertices(polygon);
@@ -598,7 +636,13 @@ static bool is_segment_visible(double x1, double y1, double x2, double y2,
     return true;
   }
 
-  // 2. Check intersection with polygon edges
+  // 2. Check if endpoints are on the polygon boundary
+  if (point_on_polygon_boundary(x1, y1, polygon) ||
+      point_on_polygon_boundary(x2, y2, polygon)) {
+    return true;
+  }
+
+  // 3. Check intersection with polygon edges
   for (int i = 0; i < count; i++) {
     int j = (i + 1) % count;
     double px1 = geometry_point_get_x(vertices[i]);
