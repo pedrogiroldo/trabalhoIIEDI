@@ -1,12 +1,12 @@
 #include "visibility.h"
 #include "../commons/bst/bst.h"
 #include "../commons/list/list.h"
+#include "../commons/sorting/sorting.h"
 #include "../shapes/line/line.h"
 #include "../shapes/shapes.h"
 #include "geometry.h"
 #include <math.h>
 #include <stdbool.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -74,7 +74,6 @@ static bool add_vertex(struct VisibilityPolygon *polygon, double x, double y) {
   if (!point)
     return false;
   polygon->vertices[polygon->vertex_count++] = point;
-  printf("  ADD VERTEX %d: (%.2f, %.2f)\n", polygon->vertex_count - 1, x, y);
   return true;
 }
 
@@ -201,12 +200,10 @@ static Segment *find_closest_at_angle(BST tree, Point2D source, double angle) {
 }
 
 VisibilityPolygon visibility_calculate(double x, double y, List barriers,
-                                       double max_radius) {
+                                       double max_radius, SortType sort_type,
+                                       int sort_threshold) {
   if (!barriers)
     return NULL;
-
-  printf("\n=== VISIBILITY DEBUG ===\n");
-  printf("Source: (%.2f, %.2f)\n", x, y);
 
   struct VisibilityPolygon *polygon = malloc(sizeof(struct VisibilityPolygon));
   if (!polygon)
@@ -282,7 +279,6 @@ VisibilityPolygon visibility_calculate(double x, double y, List barriers,
     segments[segment_count++] = s;
   }
 
-  printf("\nBarriers:\n");
   for (int i = 0; i < barrier_count; i++) {
     Shape shape = list_get(barriers, i);
     if (!shape)
@@ -297,8 +293,6 @@ VisibilityPolygon visibility_calculate(double x, double y, List barriers,
     s->id = line_get_id(l);
     s->helper = NULL;
     segments[segment_count++] = s;
-    printf("  id=%d: (%.1f,%.1f)->(%.1f,%.1f)\n", s->id, s->p_initial.x,
-           s->p_initial.y, s->p_final.x, s->p_final.y);
   }
 
   // Angle 0 splitting
@@ -328,7 +322,6 @@ VisibilityPolygon visibility_calculate(double x, double y, List barriers,
   Vertex *vertices = malloc(sizeof(Vertex) * segment_count * 2);
   int vertex_count = 0;
 
-  printf("\nSegment angles:\n");
   for (int i = 0; i < segment_count; i++) {
     Segment *s = segments[i];
     double ang1 =
@@ -353,16 +346,12 @@ VisibilityPolygon visibility_calculate(double x, double y, List barriers,
     double d2 = sqrt((s->p_final.x - x) * (s->p_final.x - x) +
                      (s->p_final.y - y) * (s->p_final.y - y));
 
-    if (s->id > 0) {
-      printf("  id=%d: ang=[%.4f,%.4f] (%.1f,%.1f)->(%.1f,%.1f)\n", s->id, ang1,
-             ang2, s->p_initial.x, s->p_initial.y, s->p_final.x, s->p_final.y);
-    }
-
     vertices[vertex_count++] = (Vertex){s->p_initial, EVENT_START, s, ang1, d1};
     vertices[vertex_count++] = (Vertex){s->p_final, EVENT_END, s, ang2, d2};
   }
 
-  qsort(vertices, vertex_count, sizeof(Vertex), compare_vertices);
+  sorting_sort(vertices, vertex_count, sizeof(Vertex), compare_vertices,
+               sort_type, sort_threshold);
 
   SweepContext ctx = {source, 0};
   BST active_segments = bst_create(compare_segments, &ctx);
@@ -378,39 +367,21 @@ VisibilityPolygon visibility_calculate(double x, double y, List barriers,
   Segment *biombo = (Segment *)bst_find_min(active_segments);
   Point2D biombo_start = {0, 0};
 
-  printf("\nInitial biombo: id=%d\n", biombo ? biombo->id : -999);
-
   if (biombo) {
     double dist = calc_ray_segment_distance(biombo, source, 0);
     biombo_start = (Point2D){source.x + dist, source.y};
     add_vertex(polygon, biombo_start.x, biombo_start.y);
   }
 
-  printf("\n=== SWEEP ===\n");
   for (int i = 0; i < vertex_count; i++) {
     Vertex *v = &vertices[i];
     ctx.current_angle = v->angle;
-
-    // Only show barrier events
-    if (v->segment->id > 0) {
-      double biombo_dist =
-          biombo ? calc_ray_segment_distance(biombo, source, v->angle) : 1e18;
-      printf("[%.4f] %s id=%d (%.1f,%.1f) dist=%.2f | biombo=%d "
-             "biombo_dist=%.2f\n",
-             v->angle, v->type == EVENT_START ? "START" : "END  ",
-             v->segment->id, v->point.x, v->point.y, v->distance,
-             biombo ? biombo->id : -999, biombo_dist);
-    }
 
     if (v->type == EVENT_START) {
       Segment *s = v->segment;
 
       bool in_front =
           is_in_front(v->point, v->distance, biombo, source, v->angle);
-
-      if (v->segment->id > 0) {
-        printf("  is_in_front=%s\n", in_front ? "YES" : "NO");
-      }
 
       if (in_front) {
         // When a new segment starts in front, the OLD biombo is BEHIND it.
@@ -430,8 +401,6 @@ VisibilityPolygon visibility_calculate(double x, double y, List barriers,
         add_vertex(polygon, v->point.x, v->point.y);
         biombo = s;
         biombo_start = v->point;
-        if (s->id > 0)
-          printf("  -> NEW BIOMBO id=%d\n", s->id);
       }
       if (s->helper == NULL) {
         s->helper = bst_insert(active_segments, s);
@@ -441,8 +410,6 @@ VisibilityPolygon visibility_calculate(double x, double y, List barriers,
       Segment *s = v->segment;
 
       if (s == biombo) {
-        if (s->id > 0)
-          printf("  Biombo ending\n");
         add_vertex(polygon, v->point.x, v->point.y);
 
         if (s->helper) {
@@ -454,7 +421,6 @@ VisibilityPolygon visibility_calculate(double x, double y, List barriers,
         // current angle
         Segment *next =
             find_closest_at_angle(active_segments, source, v->angle);
-        printf("  -> NEW BIOMBO id=%d\n", next ? next->id : -999);
 
         if (next) {
           double next_dist = calc_ray_segment_distance(next, source, v->angle);
@@ -498,10 +464,6 @@ VisibilityPolygon visibility_calculate(double x, double y, List barriers,
       if (last_angle < 0)
         last_angle += 2 * M_PI;
 
-      printf("Closing polygon: last=(%.2f,%.2f) ang=%.4f, first=(%.2f,%.2f) "
-             "ang=%.4f\n",
-             last_x, last_y, last_angle, first_x, first_y, first_angle);
-
       // Find bounding box corners between last_angle and first_angle (going
       // through 2π→0) Bounding box corners and their angles
       double corners[4][2] = {
@@ -533,16 +495,11 @@ VisibilityPolygon visibility_calculate(double x, double y, List barriers,
         }
 
         if (in_gap) {
-          printf("  Adding corner (%.2f, %.2f) at angle %.4f\n", corners[c][0],
-                 corners[c][1], ca);
           add_vertex(polygon, corners[c][0], corners[c][1]);
         }
       }
     }
   }
-
-  printf("\nTotal vertices: %d\n", polygon->vertex_count);
-  printf("=== END DEBUG ===\n\n");
 
   bst_destroy(active_segments, NULL);
   free(vertices);

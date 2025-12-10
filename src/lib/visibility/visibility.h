@@ -12,6 +12,7 @@
 #define VISIBILITY_H
 
 #include "../commons/list/list.h"
+#include "../commons/sorting/sorting.h"
 #include "geometry.h"
 #include <stdbool.h>
 
@@ -31,10 +32,13 @@ typedef void *VisibilityPolygon;
  * @param y Source point Y coordinate
  * @param barriers List of Line instances marked as barriers (is_barrier = true)
  * @param max_radius Maximum visibility radius (use large value for unbounded)
+ * @param sort_type Sorting algorithm to use (SORT_QSORT or SORT_MERGESORT)
+ * @param sort_threshold Threshold for InsertionSort (only for SORT_MERGESORT)
  * @return Pointer to VisibilityPolygon or NULL on error
  */
 VisibilityPolygon visibility_calculate(double x, double y, List barriers,
-                                       double max_radius);
+                                       double max_radius, SortType sort_type,
+                                       int sort_threshold);
 
 /**
  * @brief Destroys a visibility polygon and frees all memory

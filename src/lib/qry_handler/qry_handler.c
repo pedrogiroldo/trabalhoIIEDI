@@ -19,13 +19,16 @@
 static void execute_anteparo_command(City city, FILE *txt_output);
 static void execute_destruction_bomb(City city, const char *output_path,
                                      FileData file_data, const char *suffix,
-                                     FILE *txt_output);
+                                     FILE *txt_output, SortType sort_type,
+                                     int sort_threshold);
 static void execute_painting_bomb(City city, const char *output_path,
                                   FileData file_data, const char *suffix,
-                                  FILE *txt_output);
+                                  FILE *txt_output, SortType sort_type,
+                                  int sort_threshold);
 static void execute_cloning_bomb(City city, const char *output_path,
                                  FileData file_data, const char *suffix,
-                                 FILE *txt_output);
+                                 FILE *txt_output, SortType sort_type,
+                                 int sort_threshold);
 static bool shape_in_visibility_region(Shape shape, VisibilityPolygon polygon);
 static const char *get_shape_type_name(ShapeType type);
 
@@ -37,7 +40,8 @@ static bool is_circle_visible(Circle circle, VisibilityPolygon polygon);
 static bool is_point_in_rect(double px, double py, Rectangle rect);
 
 void qry_handler_process_file(City city, FileData file_data,
-                              const char *output_path) {
+                              const char *output_path, SortType sort_type,
+                              int sort_threshold) {
   if (!city || !file_data || !output_path) {
     return;
   }
@@ -75,8 +79,8 @@ void qry_handler_process_file(City city, FileData file_data,
     return;
   }
 
-  fprintf(txt_output, "Resultados dos Comandos de Consulta\n");
-  fprintf(txt_output, "====================================\n\n");
+  fprintf(txt_output, "Query Command Results\n");
+  fprintf(txt_output, "=====================\n\n");
 
   // Process each command line
   Queue file_lines = get_file_lines_queue(file_data);
@@ -87,13 +91,16 @@ void qry_handler_process_file(City city, FileData file_data,
     if (strcmp(command, "a") == 0) {
       execute_anteparo_command(city, txt_output);
     } else if (strcmp(command, "d") == 0) {
-      execute_destruction_bomb(city, output_path, file_data, NULL, txt_output);
+      execute_destruction_bomb(city, output_path, file_data, NULL, txt_output,
+                               sort_type, sort_threshold);
     } else if (strcmp(command, "p") == 0) {
-      execute_painting_bomb(city, output_path, file_data, NULL, txt_output);
+      execute_painting_bomb(city, output_path, file_data, NULL, txt_output,
+                            sort_type, sort_threshold);
     } else if (strcmp(command, "cln") == 0) {
-      execute_cloning_bomb(city, output_path, file_data, NULL, txt_output);
+      execute_cloning_bomb(city, output_path, file_data, NULL, txt_output,
+                           sort_type, sort_threshold);
     } else {
-      fprintf(txt_output, "Comando desconhecido: %s\n\n", command);
+      fprintf(txt_output, "Unknown command: %s\n\n", command);
     }
   }
 
@@ -110,7 +117,7 @@ static void execute_anteparo_command(City city, FILE *txt_output) {
   char *orientation = strtok(NULL, " ");
 
   if (!start_id_str || !end_id_str) {
-    fprintf(txt_output, "Erro: Comando 'a' requer IDs inicial e final\n\n");
+    fprintf(txt_output, "Error: Command 'a' requires start and end IDs\n\n");
     return;
   }
 
@@ -118,8 +125,8 @@ static void execute_anteparo_command(City city, FILE *txt_output) {
   int end_id = atoi(end_id_str);
   char orient = orientation ? orientation[0] : 'h';
 
-  fprintf(txt_output, "Comando: a %d %d %c\n", start_id, end_id, orient);
-  fprintf(txt_output, "Transformados em anteparos:\n");
+  fprintf(txt_output, "Command: a %d %d %c\n", start_id, end_id, orient);
+  fprintf(txt_output, "Transformed to barriers:\n");
 
   List shapes_to_remove = list_create();
   List segments_to_add = list_create();
@@ -148,13 +155,13 @@ static void execute_anteparo_command(City city, FILE *txt_output) {
       if (orient == 'v' || orient == 'V') {
         segment = line_create(new_id, cx, cy - r, cx, cy + r, color);
         fprintf(txt_output,
-                "  Circulo id=%d -> Segmento vertical id=%d "
+                "  Circle id=%d -> Vertical segment id=%d "
                 "(%.2f,%.2f)-(%.2f,%.2f)\n",
                 id, new_id, cx, cy - r, cx, cy + r);
       } else {
         segment = line_create(new_id, cx - r, cy, cx + r, cy, color);
         fprintf(txt_output,
-                "  Circulo id=%d -> Segmento horizontal id=%d "
+                "  Circle id=%d -> Horizontal segment id=%d "
                 "(%.2f,%.2f)-(%.2f,%.2f)\n",
                 id, new_id, cx - r, cy, cx + r, cy);
       }
@@ -173,7 +180,7 @@ static void execute_anteparo_command(City city, FILE *txt_output) {
       double h = rectangle_get_height(rect);
       const char *color = rectangle_get_border_color(rect);
 
-      fprintf(txt_output, "  Retangulo id=%d -> Segmentos:", id);
+      fprintf(txt_output, "  Rectangle id=%d -> Segments:", id);
 
       int ids[4];
       for (int i = 0; i < 4; i++) {
@@ -199,7 +206,7 @@ static void execute_anteparo_command(City city, FILE *txt_output) {
     case LINE: {
       Line line = (Line)shape_get_shape(shape);
       line_set_barrier(line, true);
-      fprintf(txt_output, "  Linha id=%d -> Marcada como anteparo\n", id);
+      fprintf(txt_output, "  Line id=%d -> Marked as barrier\n", id);
       list_remove(shapes_to_remove, shape);
       break;
     }
@@ -233,7 +240,7 @@ static void execute_anteparo_command(City city, FILE *txt_output) {
       list_insert_back(segments_to_add, segment);
 
       fprintf(txt_output,
-              "  Texto id=%d -> Segmento id=%d (%.2f,%.2f)-(%.2f,%.2f)\n", id,
+              "  Text id=%d -> Segment id=%d (%.2f,%.2f)-(%.2f,%.2f)\n", id,
               new_id, x1, y, x2, y);
       break;
     }
@@ -263,27 +270,29 @@ static void execute_anteparo_command(City city, FILE *txt_output) {
 
 static void execute_destruction_bomb(City city, const char *output_path,
                                      FileData file_data, const char *suffix,
-                                     FILE *txt_output) {
+                                     FILE *txt_output, SortType sort_type,
+                                     int sort_threshold) {
   char *x_str = strtok(NULL, " ");
   char *y_str = strtok(NULL, " ");
   char *sfx = strtok(NULL, " ");
 
   if (!x_str || !y_str) {
-    fprintf(txt_output, "Erro: Comando 'd' requer coordenadas x e y\n\n");
+    fprintf(txt_output, "Error: Command 'd' requires x and y coordinates\n\n");
     return;
   }
 
   double x = atof(x_str);
   double y = atof(y_str);
 
-  fprintf(txt_output, "Comando: d %.2f %.2f %s\n", x, y, sfx ? sfx : "-");
-  fprintf(txt_output, "Formas destruidas:\n");
+  fprintf(txt_output, "Command: d %.2f %.2f %s\n", x, y, sfx ? sfx : "-");
+  fprintf(txt_output, "Destroyed shapes:\n");
 
   List barriers = city_get_barriers(city);
-  VisibilityPolygon polygon = visibility_calculate(x, y, barriers, 1000.0);
+  VisibilityPolygon polygon =
+      visibility_calculate(x, y, barriers, 1000.0, sort_type, sort_threshold);
 
   if (!polygon) {
-    fprintf(txt_output, "  Erro ao calcular regiao de visibilidade\n\n");
+    fprintf(txt_output, "  Error calculating visibility region\n\n");
     list_destroy(barriers);
     return;
   }
@@ -333,7 +342,7 @@ static void execute_destruction_bomb(City city, const char *output_path,
   }
 
   if (destroy_count == 0) {
-    fprintf(txt_output, "  Nenhuma forma destruida\n");
+    fprintf(txt_output, "  No shapes destroyed\n");
   }
 
   list_destroy(shapes_to_destroy);
@@ -345,29 +354,32 @@ static void execute_destruction_bomb(City city, const char *output_path,
 
 static void execute_painting_bomb(City city, const char *output_path,
                                   FileData file_data, const char *suffix,
-                                  FILE *txt_output) {
+                                  FILE *txt_output, SortType sort_type,
+                                  int sort_threshold) {
   char *x_str = strtok(NULL, " ");
   char *y_str = strtok(NULL, " ");
   char *color = strtok(NULL, " ");
   char *sfx = strtok(NULL, " ");
 
   if (!x_str || !y_str || !color) {
-    fprintf(txt_output, "Erro: Comando 'p' requer coordenadas x, y e cor\n\n");
+    fprintf(txt_output,
+            "Error: Command 'p' requires x, y coordinates and color\n\n");
     return;
   }
 
   double x = atof(x_str);
   double y = atof(y_str);
 
-  fprintf(txt_output, "Comando: p %.2f %.2f %s %s\n", x, y, color,
+  fprintf(txt_output, "Command: p %.2f %.2f %s %s\n", x, y, color,
           sfx ? sfx : "-");
-  fprintf(txt_output, "Formas pintadas:\n");
+  fprintf(txt_output, "Painted shapes:\n");
 
   List barriers = city_get_barriers(city);
-  VisibilityPolygon polygon = visibility_calculate(x, y, barriers, 1000.0);
+  VisibilityPolygon polygon =
+      visibility_calculate(x, y, barriers, 1000.0, sort_type, sort_threshold);
 
   if (!polygon) {
-    fprintf(txt_output, "  Erro ao calcular regiao de visibilidade\n\n");
+    fprintf(txt_output, "  Error calculating visibility region\n\n");
     list_destroy(barriers);
     return;
   }
@@ -420,7 +432,7 @@ static void execute_painting_bomb(City city, const char *output_path,
       Text text = (Text)shape_get_shape(shape);
       id = text_get_id(text);
       text_set_colors(text, color);
-      fprintf(txt_output, "  Texto id=%d\n", id);
+      fprintf(txt_output, "  Text id=%d\n", id);
       painted_count++;
       break;
     }
@@ -430,7 +442,7 @@ static void execute_painting_bomb(City city, const char *output_path,
   }
 
   if (painted_count == 0) {
-    fprintf(txt_output, "  Nenhuma forma pintada\n");
+    fprintf(txt_output, "  No shapes painted\n");
   }
 
   list_destroy(barriers);
@@ -441,7 +453,8 @@ static void execute_painting_bomb(City city, const char *output_path,
 
 static void execute_cloning_bomb(City city, const char *output_path,
                                  FileData file_data, const char *suffix,
-                                 FILE *txt_output) {
+                                 FILE *txt_output, SortType sort_type,
+                                 int sort_threshold) {
   char *x_str = strtok(NULL, " ");
   char *y_str = strtok(NULL, " ");
   char *dx_str = strtok(NULL, " ");
@@ -450,7 +463,7 @@ static void execute_cloning_bomb(City city, const char *output_path,
 
   if (!x_str || !y_str || !dx_str || !dy_str) {
     fprintf(txt_output,
-            "Erro: Comando 'cln' requer coordenadas x, y, dx, dy\n\n");
+            "Error: Command 'cln' requires x, y, dx, dy coordinates\n\n");
     return;
   }
 
@@ -459,15 +472,16 @@ static void execute_cloning_bomb(City city, const char *output_path,
   double dx = atof(dx_str);
   double dy = atof(dy_str);
 
-  fprintf(txt_output, "Comando: cln %.2f %.2f %.2f %.2f %s\n", x, y, dx, dy,
+  fprintf(txt_output, "Command: cln %.2f %.2f %.2f %.2f %s\n", x, y, dx, dy,
           sfx ? sfx : "-");
-  fprintf(txt_output, "Formas clonadas:\n");
+  fprintf(txt_output, "Cloned shapes:\n");
 
   List barriers = city_get_barriers(city);
-  VisibilityPolygon polygon = visibility_calculate(x, y, barriers, 1000.0);
+  VisibilityPolygon polygon =
+      visibility_calculate(x, y, barriers, 1000.0, sort_type, sort_threshold);
 
   if (!polygon) {
-    fprintf(txt_output, "  Erro ao calcular regiao de visibilidade\n\n");
+    fprintf(txt_output, "  Error calculating visibility region\n\n");
     list_destroy(barriers);
     return;
   }
@@ -545,7 +559,7 @@ static void execute_cloning_bomb(City city, const char *output_path,
   }
 
   if (clone_count == 0) {
-    fprintf(txt_output, "  Nenhuma forma clonada\n");
+    fprintf(txt_output, "  No shapes cloned\n");
   }
 
   list_destroy(shapes_to_clone);
@@ -760,14 +774,14 @@ static bool is_circle_visible(Circle circle, VisibilityPolygon polygon) {
 static const char *get_shape_type_name(ShapeType type) {
   switch (type) {
   case CIRCLE:
-    return "Circulo";
+    return "Circle";
   case RECTANGLE:
-    return "Retangulo";
+    return "Rectangle";
   case LINE:
-    return "Linha";
+    return "Line";
   case TEXT:
-    return "Texto";
+    return "Text";
   default:
-    return "Desconhecido";
+    return "Unknown";
   }
 }

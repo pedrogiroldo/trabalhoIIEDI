@@ -1,5 +1,6 @@
 #include "lib/args_handler/args_handler.h"
 #include "lib/city/city.h"
+#include "lib/commons/sorting/sorting.h"
 #include "lib/file_reader/file_reader.h"
 #include "lib/geo_handler/geo_handler.h"
 #include "lib/qry_handler/qry_handler.h"
@@ -22,11 +23,18 @@ int main(int argc, char *argv[]) {
   const char *ordenation_type = get_option_value(argc, argv, "to");
   char *min_insertionsort_size = get_option_value(argc, argv, "i");
 
-  // Apply default value for -i if not provided
+  // Apply default value for -in if not provided
   if (min_insertionsort_size == NULL) {
     min_insertionsort_size = (char *)malloc(3);
     sprintf(min_insertionsort_size, "10");
   }
+
+  // Parse sorting parameters
+  SortType sort_type = SORT_QSORT; // Default to qsort
+  if (ordenation_type != NULL && ordenation_type[0] == 'm') {
+    sort_type = SORT_MERGESORT;
+  }
+  int sort_threshold = atoi(min_insertionsort_size);
 
   // Apply prefix_path if it exists (only to -f and -q)
   char *full_geo_path = NULL;
@@ -92,7 +100,8 @@ int main(int argc, char *argv[]) {
     }
 
     // Process query commands
-    qry_handler_process_file(city, qry_file_data, output_path);
+    qry_handler_process_file(city, qry_file_data, output_path, sort_type,
+                             sort_threshold);
 
     file_data_destroy(qry_file_data);
   }
