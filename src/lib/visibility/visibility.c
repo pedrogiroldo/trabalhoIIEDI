@@ -413,12 +413,16 @@ VisibilityPolygon visibility_calculate(double x, double y, List barriers,
       }
 
       if (in_front) {
-        // Only add biombo intersection if biombo is valid at current angle
-        // AND the intersection is closer than the current vertex
+        // When a new segment starts in front, the OLD biombo is BEHIND it.
+        // We need to add the intersection point with the old biombo to connect
+        // the visibility polygon correctly (extending the ray from source
+        // through the new vertex to hit the old biombo behind it).
         if (biombo) {
           double biombo_dist =
               calc_ray_segment_distance(biombo, source, v->angle);
-          if (biombo_dist < 1e17 && biombo_dist < v->distance - 1e-9) {
+          // Add intersection if biombo is valid at current angle
+          // The old biombo will be FURTHER (behind), so don't check distance
+          if (biombo_dist < 1e17 && biombo_dist > 1e-9) {
             Point2D y_inter = ray_segment_intersect(source, v->point, biombo);
             add_vertex(polygon, y_inter.x, y_inter.y);
           }
@@ -468,6 +472,70 @@ VisibilityPolygon visibility_calculate(double x, double y, List barriers,
         if (s->helper) {
           bst_remove_node(active_segments, s->helper);
           s->helper = NULL;
+        }
+      }
+    }
+  }
+
+  // Close the polygon: connect last point back to first point through bounding
+  // box
+  if (polygon->vertex_count >= 2) {
+    Point first_pt = polygon->vertices[0];
+    Point last_pt = polygon->vertices[polygon->vertex_count - 1];
+    double first_x = geometry_point_get_x(first_pt);
+    double first_y = geometry_point_get_y(first_pt);
+    double last_x = geometry_point_get_x(last_pt);
+    double last_y = geometry_point_get_y(last_pt);
+
+    // If last and first are not the same, we need to close through the bounding
+    // box
+    if (fabs(first_x - last_x) > 1e-6 || fabs(first_y - last_y) > 1e-6) {
+      // Calculate angles for first and last points
+      double first_angle = geometry_calculate_angle(first_x, first_y, x, y);
+      double last_angle = geometry_calculate_angle(last_x, last_y, x, y);
+      if (first_angle < 0)
+        first_angle += 2 * M_PI;
+      if (last_angle < 0)
+        last_angle += 2 * M_PI;
+
+      printf("Closing polygon: last=(%.2f,%.2f) ang=%.4f, first=(%.2f,%.2f) "
+             "ang=%.4f\n",
+             last_x, last_y, last_angle, first_x, first_y, first_angle);
+
+      // Find bounding box corners between last_angle and first_angle (going
+      // through 2π→0) Bounding box corners and their angles
+      double corners[4][2] = {
+          {box_max_x, box_min_y}, // bottom-right
+          {box_max_x, box_max_y}, // top-right
+          {box_min_x, box_max_y}, // top-left
+          {box_min_x, box_min_y}  // bottom-left
+      };
+      double corner_angles[4];
+      for (int c = 0; c < 4; c++) {
+        corner_angles[c] =
+            geometry_calculate_angle(corners[c][0], corners[c][1], x, y);
+        if (corner_angles[c] < 0)
+          corner_angles[c] += 2 * M_PI;
+      }
+
+      // Add corners that are between last_angle and first_angle (wrapping
+      // through 2π)
+      for (int c = 0; c < 4; c++) {
+        double ca = corner_angles[c];
+        bool in_gap = false;
+
+        // Check if corner angle is in the gap between last_angle and
+        // first_angle
+        if (last_angle > first_angle) {
+          // Gap wraps around 2π: corner is in gap if ca > last_angle OR ca <
+          // first_angle
+          in_gap = (ca > last_angle + 1e-6) || (ca < first_angle - 1e-6);
+        }
+
+        if (in_gap) {
+          printf("  Adding corner (%.2f, %.2f) at angle %.4f\n", corners[c][0],
+                 corners[c][1], ca);
+          add_vertex(polygon, corners[c][0], corners[c][1]);
         }
       }
     }
