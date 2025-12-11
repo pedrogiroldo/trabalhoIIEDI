@@ -92,6 +92,14 @@ static void calculate_bounding_box(List svg_list, double *min_x, double *min_y,
     if (y2 > *max_y)
       *max_y = y2;
   }
+
+  // Fallback if no valid shapes were found (all NULL or continue)
+  if (*min_x == DBL_MAX || *max_x == -DBL_MAX) {
+    *min_x = 0;
+    *min_y = 0;
+    *max_x = 1000;
+    *max_y = 1000;
+  }
 }
 
 typedef struct {
@@ -549,4 +557,184 @@ void city_update_max_id(City city, int id) {
   if (id >= impl->next_id) {
     impl->next_id = id + 1;
   }
+}
+
+void city_generate_qry_svg(City city, const char *output_path,
+                           FileData geo_file_data, FileData qry_file_data,
+                           List accumulated_polygons) {
+  CityImpl *impl = (CityImpl *)city;
+
+  // Extract geo file name (without extension)
+  const char *geo_original_name = get_file_name(geo_file_data);
+  size_t geo_name_len = strlen(geo_original_name);
+  char *geo_name = malloc(geo_name_len + 1);
+  if (geo_name == NULL) {
+    printf("Error: Memory allocation failed for geo file name\n");
+    return;
+  }
+  strcpy(geo_name, geo_original_name);
+  strtok(geo_name, ".");
+
+  // Extract qry file name (without extension)
+  const char *qry_original_name = get_file_name(qry_file_data);
+  size_t qry_name_len = strlen(qry_original_name);
+  char *qry_name = malloc(qry_name_len + 1);
+  if (qry_name == NULL) {
+    printf("Error: Memory allocation failed for qry file name\n");
+    free(geo_name);
+    return;
+  }
+  strcpy(qry_name, qry_original_name);
+  strtok(qry_name, ".");
+
+  // Build combined filename: geoName-qryName.svg
+  size_t path_len = strlen(output_path);
+  size_t geo_processed_len = strlen(geo_name);
+  size_t qry_processed_len = strlen(qry_name);
+  // output_path + "/" + geoName + "-" + qryName + ".svg" + null
+  size_t total_len =
+      path_len + 1 + geo_processed_len + 1 + qry_processed_len + 4 + 1;
+
+  char *output_path_with_file = malloc(total_len);
+  if (output_path_with_file == NULL) {
+    printf("Error: Memory allocation failed\n");
+    free(geo_name);
+    free(qry_name);
+    return;
+  }
+
+  int result = snprintf(output_path_with_file, total_len, "%s/%s-%s.svg",
+                        output_path, geo_name, qry_name);
+  if (result < 0 || (size_t)result >= total_len) {
+    printf("Error: Path construction failed\n");
+    free(output_path_with_file);
+    free(geo_name);
+    free(qry_name);
+    return;
+  }
+
+  FILE *file = fopen(output_path_with_file, "w");
+  if (file == NULL) {
+    printf("Error: Failed to open file: %s\n", output_path_with_file);
+    free(output_path_with_file);
+    free(geo_name);
+    free(qry_name);
+    return;
+  }
+
+  fprintf(file, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+
+  double min_x, min_y, max_x, max_y;
+  calculate_bounding_box(impl->svg_list, &min_x, &min_y, &max_x, &max_y);
+
+  double margin = 20.0;
+  double vb_x = min_x - margin;
+  double vb_y = min_y - margin;
+  double vb_w = (max_x - min_x) + 2 * margin;
+  double vb_h = (max_y - min_y) + 2 * margin;
+
+  fprintf(file,
+          "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"%.2f %.2f %.2f "
+          "%.2f\">\n",
+          vb_x, vb_y, vb_w, vb_h);
+
+  // Draw accumulated visibility polygons
+  if (accumulated_polygons != NULL) {
+    int poly_count = list_size(accumulated_polygons);
+    for (int i = 0; i < poly_count; i++) {
+      // Each item is a struct with: polygon, source_x, source_y
+      // We need to cast it properly - the struct is defined in qry_handler
+      // For now, we access it as three consecutive doubles after the polygon
+      // ptr
+      void *data_ptr = list_get(accumulated_polygons, i);
+      if (data_ptr == NULL)
+        continue;
+
+      // The structure layout: VisibilityPolygon polygon, double source_x,
+      // double source_y
+      VisibilityPolygon poly = *((VisibilityPolygon *)data_ptr);
+      double *coords = (double *)((char *)data_ptr + sizeof(VisibilityPolygon));
+      double source_x = coords[0];
+      double source_y = coords[1];
+
+      int vertex_count = visibility_polygon_get_vertex_count(poly);
+      Point *vertices = visibility_polygon_get_vertices(poly);
+
+      if (vertex_count > 0 && vertices != NULL) {
+        fprintf(file, "  <polygon points=\"");
+        for (int j = 0; j < vertex_count; j++) {
+          double x = geometry_point_get_x(vertices[j]);
+          double y = geometry_point_get_y(vertices[j]);
+          fprintf(file, "%.2f,%.2f ", x, y);
+        }
+        fprintf(file,
+                "\" fill=\"yellow\" fill-opacity=\"0.3\" stroke=\"orange\" "
+                "stroke-width=\"2\"/>\n");
+      }
+
+      // Draw source point marker
+      fprintf(file,
+              "  <circle cx='%.2f' cy='%.2f' r='5' fill='red' stroke='darkred' "
+              "stroke-width='2'/>\n",
+              source_x, source_y);
+    }
+  }
+
+  // Iterate over list using index-based access
+  int svg_list_size = list_size(impl->svg_list);
+  for (int i = 0; i < svg_list_size; i++) {
+    Shape shape = list_get(impl->svg_list, i);
+    if (shape != NULL) {
+      ShapeType type = shape_get_type(shape);
+      if (type == CIRCLE) {
+        Circle circle = (Circle)shape_get_shape(shape);
+        fprintf(
+            file,
+            "<circle cx='%.2f' cy='%.2f' r='%.2f' fill='%s' stroke='%s'/>\n",
+            circle_get_x(circle), circle_get_y(circle),
+            circle_get_radius(circle), circle_get_fill_color(circle),
+            circle_get_border_color(circle));
+      } else if (type == RECTANGLE) {
+        Rectangle rectangle = (Rectangle)shape_get_shape(shape);
+        fprintf(file,
+                "<rect x='%.2f' y='%.2f' width='%.2f' height='%.2f' fill='%s' "
+                "stroke='%s'/>\n",
+                rectangle_get_x(rectangle), rectangle_get_y(rectangle),
+                rectangle_get_width(rectangle), rectangle_get_height(rectangle),
+                rectangle_get_fill_color(rectangle),
+                rectangle_get_border_color(rectangle));
+      } else if (type == LINE) {
+        Line line = (Line)shape_get_shape(shape);
+        fprintf(file,
+                "<line x1='%.2f' y1='%.2f' x2='%.2f' y2='%.2f' stroke='%s'/>\n",
+                line_get_x1(line), line_get_y1(line), line_get_x2(line),
+                line_get_y2(line), line_get_color(line));
+      } else if (type == TEXT) {
+        Text text = (Text)shape_get_shape(shape);
+        char anchor = text_get_anchor(text);
+        const char *text_anchor = "start"; // default
+
+        // Map anchor character to SVG text-anchor value
+        if (anchor == 'm' || anchor == 'M') {
+          text_anchor = "middle";
+        } else if (anchor == 'e' || anchor == 'E') {
+          text_anchor = "end";
+        } else if (anchor == 's' || anchor == 'S') {
+          text_anchor = "start";
+        }
+
+        fprintf(file,
+                "<text x='%.2f' y='%.2f' fill='%s' stroke='%s' "
+                "text-anchor='%s'>%s</text>\n",
+                text_get_x(text), text_get_y(text), text_get_fill_color(text),
+                text_get_border_color(text), text_anchor, text_get_text(text));
+      }
+    }
+  }
+
+  fprintf(file, "</svg>\n");
+  fclose(file);
+  free(output_path_with_file);
+  free(geo_name);
+  free(qry_name);
 }

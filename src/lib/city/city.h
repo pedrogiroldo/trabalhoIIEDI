@@ -117,4 +117,19 @@ Shape city_get_shape_by_id(City city, int id);
  */
 void city_update_max_id(City city, int id);
 
+/**
+ * @brief Generates an SVG file for QRY results with combined geo-qry naming
+ * @param city City instance
+ * @param output_path Directory path for output
+ * @param geo_file_data File data containing geo file name
+ * @param qry_file_data File data containing qry file name
+ * @param accumulated_polygons List of visibility polygons (each item is a
+ * VisPolygonData) for bombs with suffix "-", can be NULL
+ *
+ * The output file follows the pattern: geoName-qryName.svg
+ */
+void city_generate_qry_svg(City city, const char *output_path,
+                           FileData geo_file_data, FileData qry_file_data,
+                           List accumulated_polygons);
+
 #endif // CITY_H

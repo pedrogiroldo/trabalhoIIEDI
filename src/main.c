@@ -100,8 +100,8 @@ int main(int argc, char *argv[]) {
     }
 
     // Process query commands
-    qry_handler_process_file(city, qry_file_data, output_path, sort_type,
-                             sort_threshold);
+    qry_handler_process_file(city, geo_file_data, qry_file_data, output_path,
+                             sort_type, sort_threshold);
 
     file_data_destroy(qry_file_data);
   }
