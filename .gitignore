@@ -3,3 +3,4 @@ ted
 *_test
 *.svg
 *.txt
+!LEIAME.txt
