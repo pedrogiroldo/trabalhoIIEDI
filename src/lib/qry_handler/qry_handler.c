@@ -25,19 +25,22 @@ typedef struct {
 // Private helper functions
 static void execute_anteparo_command(City city, FILE *txt_output);
 static void execute_destruction_bomb(City city, const char *output_path,
-                                     FileData file_data, const char *suffix,
+                                     FileData geo_file_data,
+                                     FileData qry_file_data, const char *suffix,
                                      FILE *txt_output, SortType sort_type,
                                      int sort_threshold,
                                      List accumulated_polygons);
 static void execute_painting_bomb(City city, const char *output_path,
-                                  FileData file_data, const char *suffix,
+                                  FileData geo_file_data,
+                                  FileData qry_file_data, const char *suffix,
                                   FILE *txt_output, SortType sort_type,
                                   int sort_threshold,
                                   List accumulated_polygons);
 static void execute_cloning_bomb(City city, const char *output_path,
-                                 FileData file_data, const char *suffix,
-                                 FILE *txt_output, SortType sort_type,
-                                 int sort_threshold, List accumulated_polygons);
+                                 FileData geo_file_data, FileData qry_file_data,
+                                 const char *suffix, FILE *txt_output,
+                                 SortType sort_type, int sort_threshold,
+                                 List accumulated_polygons);
 static bool shape_in_visibility_region(Shape shape, VisibilityPolygon polygon);
 static const char *get_shape_type_name(ShapeType type);
 
@@ -103,15 +106,17 @@ void qry_handler_process_file(City city, FileData geo_file_data,
     if (strcmp(command, "a") == 0) {
       execute_anteparo_command(city, txt_output);
     } else if (strcmp(command, "d") == 0) {
-      execute_destruction_bomb(city, output_path, geo_file_data, NULL,
-                               txt_output, sort_type, sort_threshold,
+      execute_destruction_bomb(city, output_path, geo_file_data, qry_file_data,
+                               NULL, txt_output, sort_type, sort_threshold,
                                accumulated_polygons);
     } else if (strcmp(command, "p") == 0) {
-      execute_painting_bomb(city, output_path, geo_file_data, NULL, txt_output,
-                            sort_type, sort_threshold, accumulated_polygons);
+      execute_painting_bomb(city, output_path, geo_file_data, qry_file_data,
+                            NULL, txt_output, sort_type, sort_threshold,
+                            accumulated_polygons);
     } else if (strcmp(command, "cln") == 0) {
-      execute_cloning_bomb(city, output_path, geo_file_data, NULL, txt_output,
-                           sort_type, sort_threshold, accumulated_polygons);
+      execute_cloning_bomb(city, output_path, geo_file_data, qry_file_data,
+                           NULL, txt_output, sort_type, sort_threshold,
+                           accumulated_polygons);
     } else {
       fprintf(txt_output, "Unknown command: %s\n\n", command);
     }
@@ -294,7 +299,8 @@ static void execute_anteparo_command(City city, FILE *txt_output) {
 }
 
 static void execute_destruction_bomb(City city, const char *output_path,
-                                     FileData file_data, const char *suffix,
+                                     FileData geo_file_data,
+                                     FileData qry_file_data, const char *suffix,
                                      FILE *txt_output, SortType sort_type,
                                      int sort_threshold,
                                      List accumulated_polygons) {
@@ -325,8 +331,8 @@ static void execute_destruction_bomb(City city, const char *output_path,
 
   // Generate SVG with visibility polygon if suffix is provided and not "-"
   if (sfx != NULL && strcmp(sfx, "-") != 0) {
-    city_generate_svg_with_visibility(city, output_path, file_data, sfx,
-                                      polygon, x, y);
+    city_generate_svg_with_visibility(city, output_path, geo_file_data,
+                                      qry_file_data, sfx, polygon, x, y);
   } else if (sfx == NULL || strcmp(sfx, "-") == 0) {
     // Accumulate polygon for final SVG when suffix is "-"
     VisPolygonData *data = malloc(sizeof(VisPolygonData));
@@ -397,7 +403,8 @@ static void execute_destruction_bomb(City city, const char *output_path,
 }
 
 static void execute_painting_bomb(City city, const char *output_path,
-                                  FileData file_data, const char *suffix,
+                                  FileData geo_file_data,
+                                  FileData qry_file_data, const char *suffix,
                                   FILE *txt_output, SortType sort_type,
                                   int sort_threshold,
                                   List accumulated_polygons) {
@@ -431,8 +438,8 @@ static void execute_painting_bomb(City city, const char *output_path,
 
   // Generate SVG with visibility polygon if suffix is provided and not "-"
   if (sfx != NULL && strcmp(sfx, "-") != 0) {
-    city_generate_svg_with_visibility(city, output_path, file_data, sfx,
-                                      polygon, x, y);
+    city_generate_svg_with_visibility(city, output_path, geo_file_data,
+                                      qry_file_data, sfx, polygon, x, y);
   } else if (sfx == NULL || strcmp(sfx, "-") == 0) {
     // Accumulate polygon for final SVG when suffix is "-"
     VisPolygonData *data = malloc(sizeof(VisPolygonData));
@@ -516,9 +523,9 @@ static void execute_painting_bomb(City city, const char *output_path,
 }
 
 static void execute_cloning_bomb(City city, const char *output_path,
-                                 FileData file_data, const char *suffix,
-                                 FILE *txt_output, SortType sort_type,
-                                 int sort_threshold,
+                                 FileData geo_file_data, FileData qry_file_data,
+                                 const char *suffix, FILE *txt_output,
+                                 SortType sort_type, int sort_threshold,
                                  List accumulated_polygons) {
   char *x_str = strtok(NULL, " ");
   char *y_str = strtok(NULL, " ");
@@ -553,8 +560,8 @@ static void execute_cloning_bomb(City city, const char *output_path,
 
   // Generate SVG with visibility polygon if suffix is provided and not "-"
   if (sfx != NULL && strcmp(sfx, "-") != 0) {
-    city_generate_svg_with_visibility(city, output_path, file_data, sfx,
-                                      polygon, x, y);
+    city_generate_svg_with_visibility(city, output_path, geo_file_data,
+                                      qry_file_data, sfx, polygon, x, y);
   } else if (sfx == NULL || strcmp(sfx, "-") == 0) {
     // Accumulate polygon for final SVG when suffix is "-"
     VisPolygonData *data = malloc(sizeof(VisPolygonData));

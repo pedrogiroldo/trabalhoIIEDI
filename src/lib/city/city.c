@@ -284,54 +284,60 @@ void city_generate_svg(City city, const char *output_path, FileData file_data,
 }
 
 void city_generate_svg_with_visibility(City city, const char *output_path,
-                                       FileData file_data,
+                                       FileData geo_file_data,
+                                       FileData qry_file_data,
                                        const char *command_suffix,
                                        void *visibility_polygon,
                                        double source_x, double source_y) {
   CityImpl *impl = (CityImpl *)city;
 
-  const char *original_file_name = get_file_name(file_data);
-  size_t name_len = strlen(original_file_name);
-  char *file_name = malloc(name_len + 1);
-  if (file_name == NULL) {
-    printf("Error: Memory allocation failed for file name\n");
+  // Extract geo file name (without extension)
+  const char *geo_original_name = get_file_name(geo_file_data);
+  size_t geo_name_len = strlen(geo_original_name);
+  char *geo_name = malloc(geo_name_len + 1);
+  if (geo_name == NULL) {
+    printf("Error: Memory allocation failed for geo file name\n");
     return;
   }
-  strcpy(file_name, original_file_name);
-  strtok(file_name, ".");
+  strcpy(geo_name, geo_original_name);
+  strtok(geo_name, ".");
 
-  if (command_suffix != NULL) {
-    size_t suffix_len = strlen(command_suffix);
-    size_t new_len = strlen(file_name) + suffix_len + 2;
-    char *new_file_name = malloc(new_len);
-    if (new_file_name == NULL) {
-      printf("Error: Memory allocation failed\n");
-      free(file_name);
-      return;
-    }
-    snprintf(new_file_name, new_len, "%s-%s", file_name, command_suffix);
-    free(file_name);
-    file_name = new_file_name;
+  // Extract qry file name (without extension)
+  const char *qry_original_name = get_file_name(qry_file_data);
+  size_t qry_name_len = strlen(qry_original_name);
+  char *qry_name = malloc(qry_name_len + 1);
+  if (qry_name == NULL) {
+    printf("Error: Memory allocation failed for qry file name\n");
+    free(geo_name);
+    return;
   }
+  strcpy(qry_name, qry_original_name);
+  strtok(qry_name, ".");
 
-  // Calculate required buffer size
+  // Build filename: geoName-qryName-sfx.svg
   size_t path_len = strlen(output_path);
-  size_t processed_name_len = strlen(file_name);
-  size_t total_len = path_len + 1 + processed_name_len + 4 + 1;
+  size_t geo_processed_len = strlen(geo_name);
+  size_t qry_processed_len = strlen(qry_name);
+  size_t suffix_len = command_suffix ? strlen(command_suffix) : 0;
+  // output_path + "/" + geoName + "-" + qryName + "-" + sfx + ".svg" + null
+  size_t total_len = path_len + 1 + geo_processed_len + 1 + qry_processed_len +
+                     1 + suffix_len + 4 + 1;
 
   char *output_path_with_file = malloc(total_len);
   if (output_path_with_file == NULL) {
     printf("Error: Memory allocation failed\n");
-    free(file_name);
+    free(geo_name);
+    free(qry_name);
     return;
   }
 
-  int result = snprintf(output_path_with_file, total_len, "%s/%s.svg",
-                        output_path, file_name);
+  int result = snprintf(output_path_with_file, total_len, "%s/%s-%s-%s.svg",
+                        output_path, geo_name, qry_name, command_suffix);
   if (result < 0 || (size_t)result >= total_len) {
     printf("Error: Path construction failed\n");
     free(output_path_with_file);
-    free(file_name);
+    free(geo_name);
+    free(qry_name);
     return;
   }
 
@@ -339,7 +345,8 @@ void city_generate_svg_with_visibility(City city, const char *output_path,
   if (file == NULL) {
     printf("Error: Failed to open file: %s\n", output_path_with_file);
     free(output_path_with_file);
-    free(file_name);
+    free(geo_name);
+    free(qry_name);
     return;
   }
 
@@ -450,7 +457,8 @@ void city_generate_svg_with_visibility(City city, const char *output_path,
   fprintf(file, "</svg>\n");
   fclose(file);
   free(output_path_with_file);
-  free(file_name);
+  free(geo_name);
+  free(qry_name);
 }
 
 List city_get_barriers(City city) {

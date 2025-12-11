@@ -67,15 +67,19 @@ void city_generate_svg(City city, const char *output_path, FileData file_data,
  * @brief Generates an SVG file with all shapes and a visibility polygon
  * @param city City instance
  * @param output_path Directory path for output
- * @param file_data File data containing original file name
- * @param command_suffix Optional suffix for the output file (can be NULL)
+ * @param geo_file_data File data from .geo file (for naming)
+ * @param qry_file_data File data from .qry file (for naming)
+ * @param command_suffix Suffix for the output file
  * @param visibility_polygon Visibility polygon to render (from visibility
  * module)
  * @param source_x X coordinate of the visibility source point
  * @param source_y Y coordinate of the visibility source point
+ *
+ * Output file follows pattern: geoName-qryName-sfx.svg
  */
 void city_generate_svg_with_visibility(City city, const char *output_path,
-                                       FileData file_data,
+                                       FileData geo_file_data,
+                                       FileData qry_file_data,
                                        const char *command_suffix,
                                        void *visibility_polygon,
                                        double source_x, double source_y);
