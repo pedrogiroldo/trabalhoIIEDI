@@ -201,7 +201,9 @@ static Segment *find_closest_at_angle(BST tree, Point2D source, double angle) {
 
 VisibilityPolygon visibility_calculate(double x, double y, List barriers,
                                        double max_radius, SortType sort_type,
-                                       int sort_threshold) {
+                                       int sort_threshold, double min_x,
+                                       double min_y, double max_x,
+                                       double max_y) {
   if (!barriers)
     return NULL;
 
@@ -218,43 +220,14 @@ VisibilityPolygon visibility_calculate(double x, double y, List barriers,
   int segment_count = 0;
   Segment **segments = malloc(sizeof(Segment *) * segment_capacity);
 
-  // First pass: calculate bounding box from all barriers
-  double min_x = x, max_x = x, min_y = y, max_y = y;
-  int barrier_count = list_size(barriers);
-  for (int i = 0; i < barrier_count; i++) {
-    Shape shape = list_get(barriers, i);
-    if (!shape)
-      continue;
-    Line l = (Line)shape_get_shape(shape);
-    if (!l || !line_is_barrier(l))
-      continue;
-
-    double x1 = line_get_x1(l), y1 = line_get_y1(l);
-    double x2 = line_get_x2(l), y2 = line_get_y2(l);
-    if (x1 < min_x)
-      min_x = x1;
-    if (x2 < min_x)
-      min_x = x2;
-    if (x1 > max_x)
-      max_x = x1;
-    if (x2 > max_x)
-      max_x = x2;
-    if (y1 < min_y)
-      min_y = y1;
-    if (y2 < min_y)
-      min_y = y2;
-    if (y1 > max_y)
-      max_y = y1;
-    if (y2 > max_y)
-      max_y = y2;
-  }
+  // Calculate bounding box based on passed parameters
+  double box_min_x = min_x;
+  double box_max_x = max_x;
+  double box_min_y = min_y;
+  double box_max_y = max_y;
 
   // Add margin around the content (fixed 50 units)
   double margin = 50;
-  double box_min_x = min_x - margin;
-  double box_max_x = max_x + margin;
-  double box_min_y = min_y - margin;
-  double box_max_y = max_y + margin;
 
   // Ensure bomb is inside the box
   if (x - margin < box_min_x)
@@ -279,6 +252,7 @@ VisibilityPolygon visibility_calculate(double x, double y, List barriers,
     segments[segment_count++] = s;
   }
 
+  int barrier_count = list_size(barriers);
   for (int i = 0; i < barrier_count; i++) {
     Shape shape = list_get(barriers, i);
     if (!shape)

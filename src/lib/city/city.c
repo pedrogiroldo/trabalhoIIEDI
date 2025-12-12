@@ -10,8 +10,62 @@
 #include <stdlib.h>
 #include <string.h>
 
-static void calculate_bounding_box(List svg_list, double *min_x, double *min_y,
-                                   double *max_x, double *max_y) {
+typedef struct {
+  List shapes_list;
+  Stack cleanup_stack;
+  List svg_list;
+  int next_id; // Next available unique ID for shapes
+} CityImpl;
+
+City city_create(void) {
+  CityImpl *city = malloc(sizeof(CityImpl));
+  if (city == NULL) {
+    printf("Error: Failed to allocate memory for City\n");
+    return NULL;
+  }
+
+  city->shapes_list = list_create();
+  city->cleanup_stack = stack_create();
+  city->svg_list = list_create();
+  city->next_id = 1; // Start IDs from 1
+
+  return (City)city;
+}
+
+void city_destroy(City city) {
+  CityImpl *impl = (CityImpl *)city;
+
+  list_destroy(impl->shapes_list);
+  list_destroy(impl->svg_list);
+
+  while (!stack_is_empty(impl->cleanup_stack)) {
+    Shape shape = stack_pop(impl->cleanup_stack);
+    shape_destroy(shape);
+  }
+  stack_destroy(impl->cleanup_stack);
+
+  free(city);
+}
+
+void city_add_shape(City city, Shape shape) {
+  CityImpl *impl = (CityImpl *)city;
+
+  list_insert_back(impl->shapes_list, shape);
+  stack_push(impl->cleanup_stack, shape);
+  list_insert_back(impl->svg_list, shape);
+}
+
+void city_get_bounding_box(City city, double *min_x, double *min_y,
+                           double *max_x, double *max_y) {
+  if (!city) {
+    *min_x = 0;
+    *min_y = 0;
+    *max_x = 1000;
+    *max_y = 1000;
+    return;
+  }
+  CityImpl *impl = (CityImpl *)city;
+  List svg_list = impl->svg_list;
   *min_x = DBL_MAX;
   *min_y = DBL_MAX;
   *max_x = -DBL_MAX;
@@ -102,51 +156,6 @@ static void calculate_bounding_box(List svg_list, double *min_x, double *min_y,
   }
 }
 
-typedef struct {
-  List shapes_list;
-  Stack cleanup_stack;
-  List svg_list;
-  int next_id; // Next available unique ID for shapes
-} CityImpl;
-
-City city_create(void) {
-  CityImpl *city = malloc(sizeof(CityImpl));
-  if (city == NULL) {
-    printf("Error: Failed to allocate memory for City\n");
-    return NULL;
-  }
-
-  city->shapes_list = list_create();
-  city->cleanup_stack = stack_create();
-  city->svg_list = list_create();
-  city->next_id = 1; // Start IDs from 1
-
-  return (City)city;
-}
-
-void city_destroy(City city) {
-  CityImpl *impl = (CityImpl *)city;
-
-  list_destroy(impl->shapes_list);
-  list_destroy(impl->svg_list);
-
-  while (!stack_is_empty(impl->cleanup_stack)) {
-    Shape shape = stack_pop(impl->cleanup_stack);
-    shape_destroy(shape);
-  }
-  stack_destroy(impl->cleanup_stack);
-
-  free(city);
-}
-
-void city_add_shape(City city, Shape shape) {
-  CityImpl *impl = (CityImpl *)city;
-
-  list_insert_back(impl->shapes_list, shape);
-  stack_push(impl->cleanup_stack, shape);
-  list_insert_back(impl->svg_list, shape);
-}
-
 List city_get_shapes_list(City city) {
   CityImpl *impl = (CityImpl *)city;
   return impl->shapes_list;
@@ -212,7 +221,7 @@ void city_generate_svg(City city, const char *output_path, FileData file_data,
   fprintf(file, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
 
   double min_x, min_y, max_x, max_y;
-  calculate_bounding_box(impl->svg_list, &min_x, &min_y, &max_x, &max_y);
+  city_get_bounding_box(city, &min_x, &min_y, &max_x, &max_y);
 
   double margin = 20.0;
   double vb_x = min_x - margin;
@@ -353,7 +362,7 @@ void city_generate_svg_with_visibility(City city, const char *output_path,
   fprintf(file, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
 
   double min_x, min_y, max_x, max_y;
-  calculate_bounding_box(impl->svg_list, &min_x, &min_y, &max_x, &max_y);
+  city_get_bounding_box(city, &min_x, &min_y, &max_x, &max_y);
 
   // Include source point in bounding box
   if (source_x < min_x)
@@ -633,7 +642,7 @@ void city_generate_qry_svg(City city, const char *output_path,
   fprintf(file, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
 
   double min_x, min_y, max_x, max_y;
-  calculate_bounding_box(impl->svg_list, &min_x, &min_y, &max_x, &max_y);
+  city_get_bounding_box(city, &min_x, &min_y, &max_x, &max_y);
 
   double margin = 20.0;
   double vb_x = min_x - margin;

@@ -38,7 +38,9 @@ typedef void *VisibilityPolygon;
  */
 VisibilityPolygon visibility_calculate(double x, double y, List barriers,
                                        double max_radius, SortType sort_type,
-                                       int sort_threshold);
+                                       int sort_threshold, double min_x,
+                                       double min_y, double max_x,
+                                       double max_y);
 
 /**
  * @brief Destroys a visibility polygon and frees all memory

@@ -122,6 +122,17 @@ Shape city_get_shape_by_id(City city, int id);
 void city_update_max_id(City city, int id);
 
 /**
+ * @brief Gets the bounding box of all shapes in the city
+ * @param city City instance
+ * @param min_x Pointer to store minimum X coordinate
+ * @param min_y Pointer to store minimum Y coordinate
+ * @param max_x Pointer to store maximum X coordinate
+ * @param max_y Pointer to store maximum Y coordinate
+ */
+void city_get_bounding_box(City city, double *min_x, double *min_y,
+                           double *max_x, double *max_y);
+
+/**
  * @brief Generates an SVG file for QRY results with combined geo-qry naming
  * @param city City instance
  * @param output_path Directory path for output

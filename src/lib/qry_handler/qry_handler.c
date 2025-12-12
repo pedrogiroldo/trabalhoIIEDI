@@ -319,9 +319,18 @@ static void execute_destruction_bomb(City city, const char *output_path,
   fprintf(txt_output, "Command: d %.2f %.2f %s\n", x, y, sfx ? sfx : "-");
   fprintf(txt_output, "Destroyed shapes:\n");
 
+  double min_x, min_y, max_x, max_y;
+  city_get_bounding_box(city, &min_x, &min_y, &max_x, &max_y);
+  double margin = 20.0;
+  min_x -= margin;
+  min_y -= margin;
+  max_x += margin;
+  max_y += margin;
+
   List barriers = city_get_barriers(city);
   VisibilityPolygon polygon =
-      visibility_calculate(x, y, barriers, 1000.0, sort_type, sort_threshold);
+      visibility_calculate(x, y, barriers, 1000.0, sort_type, sort_threshold,
+                           min_x, min_y, max_x, max_y);
 
   if (!polygon) {
     fprintf(txt_output, "  Error calculating visibility region\n\n");
@@ -426,9 +435,18 @@ static void execute_painting_bomb(City city, const char *output_path,
           sfx ? sfx : "-");
   fprintf(txt_output, "Painted shapes:\n");
 
+  double min_x, min_y, max_x, max_y;
+  city_get_bounding_box(city, &min_x, &min_y, &max_x, &max_y);
+  double margin = 20.0;
+  min_x -= margin;
+  min_y -= margin;
+  max_x += margin;
+  max_y += margin;
+
   List barriers = city_get_barriers(city);
   VisibilityPolygon polygon =
-      visibility_calculate(x, y, barriers, 1000.0, sort_type, sort_threshold);
+      visibility_calculate(x, y, barriers, 1000.0, sort_type, sort_threshold,
+                           min_x, min_y, max_x, max_y);
 
   if (!polygon) {
     fprintf(txt_output, "  Error calculating visibility region\n\n");
@@ -548,9 +566,18 @@ static void execute_cloning_bomb(City city, const char *output_path,
           sfx ? sfx : "-");
   fprintf(txt_output, "Cloned shapes:\n");
 
+  double min_x, min_y, max_x, max_y;
+  city_get_bounding_box(city, &min_x, &min_y, &max_x, &max_y);
+  double margin = 20.0;
+  min_x -= margin;
+  min_y -= margin;
+  max_x += margin;
+  max_y += margin;
+
   List barriers = city_get_barriers(city);
   VisibilityPolygon polygon =
-      visibility_calculate(x, y, barriers, 1000.0, sort_type, sort_threshold);
+      visibility_calculate(x, y, barriers, 1000.0, sort_type, sort_threshold,
+                           min_x, min_y, max_x, max_y);
 
   if (!polygon) {
     fprintf(txt_output, "  Error calculating visibility region\n\n");
