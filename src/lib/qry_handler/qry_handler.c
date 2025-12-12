@@ -59,30 +59,55 @@ void qry_handler_process_file(City city, FileData geo_file_data,
   }
 
   // Create text output file
-  const char *original_file_name = get_file_name(qry_file_data);
-  size_t name_len = strlen(original_file_name);
-  char *file_name = malloc(name_len + 1);
-  if (!file_name) {
-    printf("Error: Memory allocation failed for file name\n");
+  const char *qry_file_name_full = get_file_name(qry_file_data);
+  const char *geo_file_name_full = get_file_name(geo_file_data);
+
+  char *qry_name = malloc(strlen(qry_file_name_full) + 1);
+  char *geo_name = malloc(strlen(geo_file_name_full) + 1);
+
+  if (qry_name)
+    strcpy(qry_name, qry_file_name_full);
+  if (geo_name)
+    strcpy(geo_name, geo_file_name_full);
+
+  if (!qry_name || !geo_name) {
+    printf("Error: Memory allocation failed for file names\n");
+    free(qry_name); // One might be NULL, but free(NULL) is safe
+    free(geo_name);
     return;
   }
-  strcpy(file_name, original_file_name);
-  strtok(file_name, ".");
+
+  // Remove extensions
+  char *dot = strrchr(qry_name, '.');
+  if (dot)
+    *dot = '\0';
+
+  dot = strrchr(geo_name, '.');
+  if (dot)
+    *dot = '\0';
 
   // Build output path for text file
   size_t path_len = strlen(output_path);
-  size_t processed_name_len = strlen(file_name);
-  size_t total_len = path_len + 1 + processed_name_len + 4 + 1;
+  size_t qry_len = strlen(qry_name);
+  size_t geo_len = strlen(geo_name);
+
+  // Format: output_path/geoName-qryName.txt
+  // Length: path + / + geo + - + qry + .txt + \0
+  size_t total_len = path_len + 1 + geo_len + 1 + qry_len + 4 + 1;
 
   char *txt_path = malloc(total_len);
   if (!txt_path) {
-    printf("Error: Memory allocation failed\n");
-    free(file_name);
+    printf("Error: Memory allocation failed for path\n");
+    free(qry_name);
+    free(geo_name);
     return;
   }
 
-  snprintf(txt_path, total_len, "%s/%s.txt", output_path, file_name);
-  free(file_name);
+  snprintf(txt_path, total_len, "%s/%s-%s.txt", output_path, geo_name,
+           qry_name);
+
+  free(qry_name);
+  free(geo_name);
 
   FILE *txt_output = fopen(txt_path, "w");
   if (!txt_output) {
